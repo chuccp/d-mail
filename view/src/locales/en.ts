@@ -181,6 +181,8 @@ export default {
     requestBody: 'Request Body',
     useTemplate: 'Use Template',
     template: 'Template Content',
+    templatePlaceholder: 'JSON fields from API response can be used directly, e.g. {{.key}}, {{.nested.key}}\n\nExample:\nStatus: {{.status}}\nMessage: {{.message}}\nTime: {{.timestamp}}',
+    templateHelp: 'Uses Go template syntax',
     status: 'Status',
     enabled: 'Enabled',
     disabled: 'Disabled',

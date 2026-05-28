@@ -60,10 +60,11 @@
           v-model="form.template"
           type="textarea"
           :rows="6"
-          placeholder="{{.Subject}}..."
+          :placeholder="t('schedule.templatePlaceholder')"
         />
         <div class="help-text">
-          使用 Go 原生模板语法，<a href="https://pkg.go.dev/text/template" target="_blank" rel="noopener">语法如何使用 →</a>
+          {{ t('schedule.templateHelp') }}
+          <a href="https://pkg.go.dev/text/template" target="_blank" rel="noopener">Go template →</a>
         </div>
       </el-form-item>
       <el-form-item :label="t('common.status')" prop="isUse">

@@ -47,6 +47,7 @@
             </el-tag>
           </template>
         </el-table-column>
+        <el-table-column v-if="authStore.getIsAdmin" prop="userName" :label="t('common.creator')" width="100" />
       </el-table>
 
       <div class="pagination-wrapper">
@@ -78,8 +79,10 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { Plus } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import { getTokens } from '@/api/token'
+import { useAuthStore } from '@/store/auth'
 
 const { t } = useI18n()
+const authStore = useAuthStore()
 
 interface Props {
   modelValue: number

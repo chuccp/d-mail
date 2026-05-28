@@ -181,6 +181,8 @@ export default {
     requestBody: '請求內容',
     useTemplate: '使用範本',
     template: '範本內容',
+    templatePlaceholder: 'API 回傳的 JSON 欄位可直接用於範本，如 {{.key}}、{{.nested.key}}\n\n範例：\n狀態: {{.status}}\n訊息: {{.message}}\n時間: {{.timestamp}}',
+    templateHelp: '使用 Go 範本語法',
     status: '狀態',
     enabled: '啟用',
     disabled: '停用',

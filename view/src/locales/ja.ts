@@ -181,6 +181,8 @@ export default {
     requestBody: 'リクエストボディ',
     useTemplate: 'テンプレートを使用',
     template: 'テンプレート内容',
+    templatePlaceholder: 'APIレスポンスのJSONフィールドをそのまま使用できます。例: {{.key}}、{{.nested.key}}\n\n例：\nステータス: {{.status}}\nメッセージ: {{.message}}\n時刻: {{.timestamp}}',
+    templateHelp: 'Goテンプレート構文を使用',
     status: 'ステータス',
     enabled: '有効',
     disabled: '無効',

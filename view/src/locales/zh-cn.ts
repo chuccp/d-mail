@@ -181,6 +181,8 @@ export default {
     requestBody: '请求体',
     useTemplate: '使用模板',
     template: '模板内容',
+    templatePlaceholder: '接口返回的 JSON 字段可直接用于模板，如 {{.key}}、{{.nested.key}}\n\n示例：\n状态: {{.status}}\n消息: {{.message}}\n时间: {{.timestamp}}',
+    templateHelp: '使用 Go 模板语法',
     status: '状态',
     enabled: '启用',
     disabled: '禁用',

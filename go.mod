@@ -4,7 +4,7 @@ go 1.25.5
 
 require (
 	emperror.dev/errors v0.8.1
-	github.com/chuccp/go-web-frame v0.8.2
+	github.com/chuccp/go-web-frame v0.8.5
 	github.com/google/uuid v1.6.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/wneessen/go-mail v0.7.2
@@ -14,7 +14,7 @@ require (
 	gorm.io/gorm v1.31.1
 )
 
-replace github.com/chuccp/go-web-frame v0.8.2 => ../go-web-frame
+replace github.com/chuccp/go-web-frame v0.8.5 => ../go-web-frame
 
 require (
 	filippo.io/edwards25519 v1.2.0 // indirect

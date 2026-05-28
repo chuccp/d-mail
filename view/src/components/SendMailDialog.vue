@@ -11,14 +11,11 @@
       label-width="100px"
     >
       <el-form-item :label="t('mail.recipientName')" prop="toEmail">
-        <el-select v-model="form.toEmail" :placeholder="t('smtp.pleaseSelectRecipient')" filterable clearable>
-          <el-option
-            v-for="item in mailList"
-            :key="item.id"
-            :label="`${item.name} <${item.mail}>`"
-            :value="item.mail"
-          />
-        </el-select>
+        <MailSelector
+          v-model="form.toEmail"
+          :title="t('mail.recipientName')"
+          :placeholder="t('smtp.pleaseSelectRecipient')"
+        />
       </el-form-item>
       <el-form-item :label="t('token.subject')" prop="subject">
         <el-input v-model="form.subject" :placeholder="t('smtp.testEmailSubject')" />
@@ -45,13 +42,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { useI18n } from 'vue-i18n'
+import MailSelector from '@/components/MailSelector.vue'
 
 const { t } = useI18n()
 import { sendTestMail } from '@/api/smtp'
-import { getMails } from '@/api/mail'
 import { ElMessage } from 'element-plus'
 
 interface Props {
@@ -67,7 +64,6 @@ const emit = defineEmits<{
 
 const formRef = ref<FormInstance>()
 const submitting = ref(false)
-const mailList = ref<MailConfig[]>([])
 
 const form = ref({
   toEmail: '',
@@ -80,25 +76,6 @@ const rules = computed<FormRules<any>>(() => ({
   subject: [{ required: true, message: t('token.subject'), trigger: 'blur' }],
   content: [{ required: true, message: t('log.content'), trigger: 'blur' }]
 }))
-
-const loadMails = async () => {
-  const res = await getMails(1, 1000)
-  if (res.code === 0 || res.code === 200) {
-    mailList.value = res.data.list
-  }
-}
-
-onMounted(() => {
-  if (props.open) {
-    loadMails()
-  }
-})
-
-watch(() => props.open, (newVal) => {
-  if (newVal) {
-    loadMails()
-  }
-})
 
 const handleSubmit = async () => {
   if (!formRef.value) return

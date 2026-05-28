@@ -52,7 +52,11 @@ interface TokenConfig {
   token: string
   name: string
   SMTPId: number
+  SMTP: SMTPConfig | null
+  SMTPStr: string
   receiveEmailIds: string
+  receiveEmails: MailConfig[]
+  receiveEmailsStr: string
   subject: string
   state: number // 0: 使用中 1: 用户禁用 2: 管理员禁用
   createTime: string

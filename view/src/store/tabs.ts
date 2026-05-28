@@ -6,7 +6,7 @@ interface Tab {
   path: string
   fullPath: string
   name: string
-  title: string
+  titleKey: string
   closable: boolean
 }
 
@@ -16,7 +16,7 @@ export const useTabsStore = defineStore('tabs', () => {
     path: '/dashboard',
     fullPath: '/dashboard',
     name: 'Dashboard',
-    title: 'Dashboard',
+    titleKey: 'dashboard.dashboard',
     closable: false
   }
 
@@ -27,7 +27,7 @@ export const useTabsStore = defineStore('tabs', () => {
   const activeTabPath = ref('/dashboard')
 
   // 添加tab
-  const addTab = (route: RouteLocationNormalized | { path: string; fullPath?: string; name?: string; meta?: { title?: string } }) => {
+  const addTab = (route: RouteLocationNormalized | { path: string; fullPath?: string; name?: string; meta?: { titleKey?: string } }) => {
     const fullPath = route.fullPath || route.path
     const path = route.path
 
@@ -46,7 +46,7 @@ export const useTabsStore = defineStore('tabs', () => {
         path: path,
         fullPath: fullPath,
         name: String(route.name || ''),
-        title: (route.meta?.title as string) || String(route.name) || 'Untitled',
+        titleKey: (route.meta?.titleKey as string) || '',
         closable: true
       })
     }

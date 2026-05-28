@@ -120,6 +120,19 @@ func (token *Token) sendMail(req *web.Request) (any, error) {
 	return token.tokenService.SendMailByToken(req)
 }
 
+func (token *Token) sendMailById(req *web.Request) (any, error) {
+	var st entity.SendMailByTokenId
+	err := req.BindJSON(&st)
+	if err != nil {
+		return nil, err
+	}
+	user, err := auth.User(req, token.context)
+	if user == nil {
+		return nil, err
+	}
+	return token.tokenService.SendMailByTokenId(user.Id, &st)
+}
+
 func (token *Token) Init(context *core.Context) error {
 	token.context = context
 	token.tokenService = wf.GetService[*service.TokenService](token.context)
@@ -130,5 +143,6 @@ func (token *Token) Init(context *core.Context) error {
 	token.context.Post("/token", token.postOne).WithMeta(auth2.WithLogin())
 	token.context.Put("/token", token.putOne).WithMeta(auth2.WithLogin())
 	token.context.Post("/sendMailByToken", token.sendMail).WithMeta(auth2.WithLogin())
+	token.context.Post("/sendMailByTokenId", token.sendMailById).WithMeta(auth2.WithLogin())
 	return nil
 }

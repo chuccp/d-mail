@@ -60,7 +60,7 @@ func createAPP() (*wf.WebFrame, error) {
 	restGroupBuilder.Rest(&rest.Set{}, &rest.User{}, &rest.Token{}, &rest.Mail{}, &rest.Smtp{}, &rest.Schedule{}, &rest.Log{})
 	restGroupBuilder.Port(webPort)
 	restGroupBuilder.ContextPath("/api")
-	restGroupBuilder.Filter(auth2.NewAuthenticationFilter(&auth.Authentication{}), cors.NewCrosFilter())
+	restGroupBuilder.Filter(cors.NewCrosFilter(), auth2.NewAuthenticationFilter(&auth.Authentication{}))
 	restGroup := restGroupBuilder.Build()
 
 	builder.RestGroup(restGroup)

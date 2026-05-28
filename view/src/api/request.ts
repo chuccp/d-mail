@@ -27,6 +27,7 @@ const handleUnauthorized = () => {
   isRedirecting = true
   localStorage.removeItem('http2smtp-token')
   localStorage.removeItem('http2smtp-username')
+  localStorage.removeItem('http2smtp-isAdmin')
   ElMessage.error('登录已过期，请重新登录')
   window.location.href = '/login'
 }

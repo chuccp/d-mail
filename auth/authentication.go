@@ -9,6 +9,12 @@ import (
 )
 
 type Authentication struct {
+	ctx *core.Context
+}
+
+func (authentication *Authentication) Init(ctx *core.Context) error {
+	authentication.ctx = ctx
+	return nil
 }
 
 func (authentication *Authentication) SignIn(user any, request *web.Request) (any, error) {
@@ -24,8 +30,8 @@ func (authentication *Authentication) SignOut(request *web.Request) (any, error)
 	return web.Ok("success"), nil
 }
 
-func (authentication *Authentication) User(request *web.Request, ctx *core.Context) (any, error) {
-	return User(request, ctx)
+func (authentication *Authentication) User(request *web.Request) (any, error) {
+	return User(request, authentication.ctx)
 }
 
 func (authentication *Authentication) NewUser() any {

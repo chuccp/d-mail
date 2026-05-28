@@ -131,7 +131,7 @@
             :class="{ 'is-active': tab.path === route.path }"
             @click="handleTabClick(tab)"
           >
-            <span class="tab-title">{{ tab.title }}</span>
+            <span class="tab-title">{{ t(tab.titleKey) }}</span>
             <el-icon
               v-if="tab.closable"
               class="tab-close"

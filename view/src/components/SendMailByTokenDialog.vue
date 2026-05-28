@@ -59,8 +59,6 @@ import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
 import { sendMailByToken, getToken } from '@/api/token'
-import { getSMTP } from '@/api/smtp'
-import { getMails } from '@/api/mail'
 import { ElMessage } from 'element-plus'
 
 interface Props {
@@ -96,23 +94,8 @@ const loadTokenInfo = async () => {
     const res = await getToken(props.tokenId)
     if (res.code === 0 || res.code === 200) {
       const token = res.data
-      // Load SMTP info
-      if (token.SMTPId) {
-        const smtpRes = await getSMTP(token.SMTPId)
-        if (smtpRes.code === 0 || smtpRes.code === 200) {
-          smtpInfo.value = smtpRes.data
-        }
-      }
-      // Load recipient info
-      if (token.receiveEmailIds) {
-        const ids = token.receiveEmailIds.split(',').filter(Boolean).map(Number)
-        const mailRes = await getMails(1, 1000)
-        if (mailRes.code === 0 || mailRes.code === 200) {
-          recipientList.value = mailRes.data.list.filter(m => ids.includes(m.id))
-        }
-      } else {
-        recipientList.value = []
-      }
+      smtpInfo.value = token.SMTP || null
+      recipientList.value = token.receiveEmails || []
     }
   } finally {
     infoLoading.value = false

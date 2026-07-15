@@ -54,7 +54,7 @@ func (l *Log) getPage(req *web.Request) (any, error) {
 func (l *Log) downLoad(req *web.Request) (any, error) {
 	rFilePath := req.GetFormParam("file")
 	log.Info("downLoad", zap.String("filePath", rFilePath))
-	return &web.File{Path: rFilePath}, nil
+	return web.CreateFileResponse(rFilePath), nil
 }
 
 func (l *Log) Init(context *core.Context) error {

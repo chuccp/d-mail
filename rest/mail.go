@@ -54,7 +54,7 @@ func (m *Mail) deleteOne(req *web.Request) (any, error) {
 	if exist == nil {
 		return nil, errors.New("mail not found")
 	}
-	err = m.mailModel.DeleteById(uint(atoi))
+	err = m.mailModel.DeleteByPK(uint(atoi))
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +153,7 @@ func (m *Mail) putOne(req *web.Request) (any, error) {
 	}
 	st.UserId = user.Id
 
-	err = m.mailModel.UpdateById(&st)
+	err = m.mailModel.UpdateByPK(&st)
 	if err != nil {
 		return nil, err
 	}

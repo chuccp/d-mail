@@ -42,7 +42,7 @@ func (token *Token) deleteOne(req *web.Request) (any, error) {
 	if exist == nil {
 		return nil, errors.New("token not found")
 	}
-	err = tokenModel.DeleteById(id)
+	err = tokenModel.DeleteByPK(id)
 	if err != nil {
 		return nil, err
 	}
@@ -93,12 +93,12 @@ func (token *Token) putOne(req *web.Request) (any, error) {
 	st.UserId = user.Id
 	st.ReceiveEmailIds = util.DeduplicateIds(st.ReceiveEmailIds)
 	// 保留原有 token
-	exist, _ := token.tokenModel.FindById(st.Id)
+	exist, _ := token.tokenModel.FindByPK(st.Id)
 	if exist != nil && exist.Token != "" {
 		st.Token = exist.Token
 	}
 	st.State = token.resolveState(st.State, user.IsAdmin)
-	err = token.tokenModel.UpdateById(&st)
+	err = token.tokenModel.UpdateByPK(&st)
 	if err != nil {
 		return nil, err
 	}

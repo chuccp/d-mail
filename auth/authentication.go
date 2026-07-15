@@ -30,7 +30,7 @@ func (authentication *Authentication) SignOut(request *web.Request) (any, error)
 	return web.Ok("success"), nil
 }
 
-func (authentication *Authentication) User(request *web.Request) (any, error) {
+func (authentication *Authentication) User(request *web.Request) (*model.User, error) {
 	return User(request, authentication.ctx)
 }
 
@@ -55,7 +55,7 @@ func User(request *web.Request, ctx *core.Context) (*model.User, error) {
 	var dbUser *model.User
 	var dbErr error
 	if loginUser.Id != 0 {
-		dbUser, dbErr = userModel.FindById(loginUser.Id)
+		dbUser, dbErr = userModel.FindByPK(loginUser.Id)
 	} else if loginUser.Username != "" {
 		dbUser, dbErr = userModel.FindOneByName(loginUser.Username)
 	}

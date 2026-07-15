@@ -79,17 +79,17 @@ func (l *ScheduleService) Edit(sd *model.Schedule) error {
 		sd.HeaderStr = string(jsonData)
 	}
 
-	v, err := l.tokenModel.FindById(sd.TokenId)
+	v, err := l.tokenModel.FindByPK(sd.TokenId)
 	if err != nil {
 		return err
 	}
 	if v == nil {
 		return errors.New("token not found")
 	}
-	return l.scheduleModel.UpdateById(sd)
+	return l.scheduleModel.UpdateByPK(sd)
 }
 func (l *ScheduleService) Save(sd *model.Schedule) error {
-	v, err := l.tokenModel.FindById(sd.TokenId)
+	v, err := l.tokenModel.FindByPK(sd.TokenId)
 	if err != nil {
 		return err
 	}
@@ -118,7 +118,7 @@ func (l *ScheduleService) GetOne(id int, userId uint) (*model.Schedule, error) {
 		one.Headers = []*model.Header{}
 	}
 
-	byToken, err := l.tokenModel.FindById(one.TokenId)
+	byToken, err := l.tokenModel.FindByPK(one.TokenId)
 	if err != nil {
 		return nil, err
 	}

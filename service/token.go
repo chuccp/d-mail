@@ -84,7 +84,7 @@ func (l *TokenService) GetPage(page *web.Page, userId uint, isAdmin bool, name s
 func (l *TokenService) SendApiCallMail(schedule *model.Schedule) error {
 	l.lock.Lock()
 	defer l.lock.Unlock()
-	byToken, err := l.tokenModel.FindById(schedule.TokenId)
+	byToken, err := l.tokenModel.FindByPK(schedule.TokenId)
 	if err != nil {
 		return err
 	}
@@ -204,7 +204,7 @@ func (l *TokenService) SendMailByToken(req *web.Request) (any, error) {
 func (l *TokenService) SendMailByTokenId(userId uint, req *entity.SendMailByTokenId) (any, error) {
 	l.lock.Lock()
 	defer l.lock.Unlock()
-	byToken, err := l.tokenModel.FindById(req.TokenId)
+	byToken, err := l.tokenModel.FindByPK(req.TokenId)
 	if err != nil {
 		return nil, err
 	}

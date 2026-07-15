@@ -49,7 +49,7 @@ func (s *UserService) GetPage(page *web.Page) (any, error) {
 
 // GetOne returns a user by ID.
 func (s *UserService) GetOne(id uint) (*model.User, error) {
-	user, err := s.userModel.FindById(id)
+	user, err := s.userModel.FindByPK(id)
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +85,7 @@ func (s *UserService) CreateUser(name, password string, isAdmin, isUse bool) err
 
 // UpdateUser updates an existing user. If password is non-empty, it will be hashed and updated.
 func (s *UserService) UpdateUser(id uint, name string, password string, isAdmin, isUse bool) error {
-	user, err := s.userModel.FindById(id)
+	user, err := s.userModel.FindByPK(id)
 	if err != nil {
 		return err
 	}
@@ -117,7 +117,7 @@ func (s *UserService) UpdateUser(id uint, name string, password string, isAdmin,
 	user.IsUse = isUse
 	user.UpdateTime = time.Now()
 
-	return s.userModel.UpdateById(user)
+	return s.userModel.UpdateByPK(user)
 }
 
 // HasAdminUser checks if any admin user exists in the database.
@@ -174,12 +174,12 @@ func (s *UserService) ResetAdminPassword(username, password string) error {
 	user.Name = username
 	user.Password = hashedPassword
 	user.UpdateTime = time.Now()
-	return s.userModel.UpdateById(user)
+	return s.userModel.UpdateByPK(user)
 }
 
 // DeleteUser soft-deletes a user by setting is_use = false.
 func (s *UserService) DeleteUser(id uint) error {
-	user, err := s.userModel.FindById(id)
+	user, err := s.userModel.FindByPK(id)
 	if err != nil {
 		return err
 	}
@@ -188,7 +188,7 @@ func (s *UserService) DeleteUser(id uint) error {
 	}
 	user.IsUse = false
 	user.UpdateTime = time.Now()
-	return s.userModel.UpdateById(user)
+	return s.userModel.UpdateByPK(user)
 }
 
 // FillUserNames fills the UserName field for a list of records that have UserId.

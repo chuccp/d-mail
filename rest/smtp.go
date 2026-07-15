@@ -57,7 +57,7 @@ func (smtp *Smtp) deleteOne(req *web.Request) (any, error) {
 	if exist == nil {
 		return nil, errors.New("smtp not found")
 	}
-	err = smtp.smtpModel.DeleteById(uint(atoi))
+	err = smtp.smtpModel.DeleteByPK(uint(atoi))
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +102,7 @@ func (smtp *Smtp) putOne(req *web.Request) (any, error) {
 		return nil, err
 	}
 	st.UserId = user.Id
-	err = smtp.smtpModel.UpdateById(&st)
+	err = smtp.smtpModel.UpdateByPK(&st)
 	if err != nil {
 		return nil, err
 	}

@@ -53,7 +53,7 @@ func (schedule *Schedule) deleteOne(req *web.Request) (any, error) {
 	if exist == nil {
 		return nil, errors.New("schedule not found")
 	}
-	err = schedule.scheduleModel.DeleteById(uint(atoi))
+	err = schedule.scheduleModel.DeleteByPK(uint(atoi))
 	if err != nil {
 		return nil, err
 	}

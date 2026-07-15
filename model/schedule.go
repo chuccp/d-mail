@@ -68,7 +68,7 @@ func (schedule *Schedule) SetId(id uint) {
 }
 
 type ScheduleModel struct {
-	*model.EntryModel[*Schedule]
+	*model.EntryModel[*Schedule, uint]
 	db      *db.DB
 	context *core.Context
 }
@@ -76,13 +76,13 @@ type ScheduleModel struct {
 func (t *ScheduleModel) Init(db *db.DB, context *core.Context) error {
 	t.db = db
 	t.context = context
-	t.EntryModel = model.NewEntryModel[*Schedule](t.db, t.GetTableName())
+	t.EntryModel = model.NewEntryModel[*Schedule, uint](t.db, t.GetTableName())
 	return nil
 }
 
 func (t *ScheduleModel) ReNew(db *db.DB, c *core.Context) core.IModel {
 	return &ScheduleModel{
-		EntryModel: model.NewEntryModel[*Schedule](db, t.GetTableName()),
+		EntryModel: model.NewEntryModel[*Schedule, uint](db, t.GetTableName()),
 		db:         db,
 		context:    c,
 	}

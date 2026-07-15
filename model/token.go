@@ -44,7 +44,7 @@ func (token *Token) IsUse() bool {
 }
 
 type TokenModel struct {
-	*model.EntryModel[*Token]
+	*model.EntryModel[*Token, uint]
 	db      *db.DB
 	context *core.Context
 }
@@ -52,12 +52,12 @@ type TokenModel struct {
 func (t *TokenModel) Init(db *db.DB, context *core.Context) error {
 	t.db = db
 	t.context = context
-	t.EntryModel = model.NewEntryModel[*Token](t.db, t.GetTableName())
+	t.EntryModel = model.NewEntryModel[*Token, uint](t.db, t.GetTableName())
 	return nil
 }
 func (t *TokenModel) ReNew(db *db.DB, c *core.Context) core.IModel {
 	return &TokenModel{
-		EntryModel: model.NewEntryModel[*Token](db, t.GetTableName()),
+		EntryModel: model.NewEntryModel[*Token, uint](db, t.GetTableName()),
 		db:         db,
 		context:    c,
 	}

@@ -36,7 +36,7 @@ func (smtp *SMTP) SetId(id uint) {
 }
 
 type SMTPModel struct {
-	*model.EntryModel[*SMTP]
+	*model.EntryModel[*SMTP, uint]
 	db      *db.DB
 	context *core.Context
 }
@@ -44,13 +44,13 @@ type SMTPModel struct {
 func (t *SMTPModel) Init(db *db.DB, context *core.Context) error {
 	t.db = db
 	t.context = context
-	t.EntryModel = model.NewEntryModel[*SMTP](t.db, t.GetTableName())
+	t.EntryModel = model.NewEntryModel[*SMTP, uint](t.db, t.GetTableName())
 	return nil
 }
 
 func (t *SMTPModel) ReNew(db *db.DB, c *core.Context) core.IModel {
 	return &SMTPModel{
-		EntryModel: model.NewEntryModel[*SMTP](db, t.GetTableName()),
+		EntryModel: model.NewEntryModel[*SMTP, uint](db, t.GetTableName()),
 		db:         db,
 		context:    c,
 	}
@@ -61,7 +61,7 @@ func (t *SMTPModel) GetTableName() string {
 }
 
 func (t *SMTPModel) FindMapByIds(ids []uint) (map[uint]*SMTP, error) {
-	SMTPs, err := t.FindAllByIds(ids...)
+	SMTPs, err := t.FindAllByPK(ids...)
 	if err != nil {
 		return nil, err
 	}

@@ -10,12 +10,15 @@ import (
 	"github.com/chuccp/go-web-frame/web"
 	"github.com/chuccp/http2smtp/auth"
 	"github.com/chuccp/http2smtp/entity"
+	"github.com/chuccp/http2smtp/model"
 	"github.com/chuccp/http2smtp/service"
 )
 
+type authFilter = auth2.AuthenticationFilter[*model.User]
+
 type User struct {
 	context              *core.Context
-	authenticationFilter *auth2.AuthenticationFilter
+	authenticationFilter *authFilter
 	userService          *service.UserService
 }
 
@@ -142,7 +145,7 @@ func (l *User) deleteUser(request *web.Request) (any, error) {
 
 func (l *User) Init(context *core.Context) error {
 	l.context = context
-	l.authenticationFilter = wf.GetFilter[*auth2.AuthenticationFilter](context)
+	l.authenticationFilter = wf.GetFilter[*authFilter](context)
 	l.userService = wf.GetService[*service.UserService](context)
 	context.Post("/signIn", l.signIn)
 	context.Post("/logout", l.logout)

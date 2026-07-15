@@ -20,7 +20,7 @@ type User struct {
 }
 
 type UserModel struct {
-	*model.EntryModel[*User]
+	*model.EntryModel[*User, uint]
 	db      *db.DB
 	context *core.Context
 }
@@ -28,13 +28,13 @@ type UserModel struct {
 func (t *UserModel) Init(db *db.DB, context *core.Context) error {
 	t.db = db
 	t.context = context
-	t.EntryModel = model.NewEntryModel[*User](t.db, t.GetTableName())
+	t.EntryModel = model.NewEntryModel[*User, uint](t.db, t.GetTableName())
 	return nil
 }
 
 func (t *UserModel) ReNew(db *db.DB, c *core.Context) core.IModel {
 	return &UserModel{
-		EntryModel: model.NewEntryModel[*User](db, t.GetTableName()),
+		EntryModel: model.NewEntryModel[*User, uint](db, t.GetTableName()),
 		db:         db,
 		context:    c,
 	}
@@ -52,7 +52,7 @@ func (t *UserModel) FindNameMapByIds(ids []uint) (map[uint]string, error) {
 	if len(ids) == 0 {
 		return make(map[uint]string), nil
 	}
-	users, err := t.FindAllByIds(ids...)
+	users, err := t.FindAllByPK(ids...)
 	if err != nil {
 		return nil, err
 	}

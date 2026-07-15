@@ -41,7 +41,7 @@ func (log *Log) SetId(id uint) {
 }
 
 type LogModel struct {
-	*model.EntryModel[*Log]
+	*model.EntryModel[*Log, uint]
 	db      *db.DB
 	context *core.Context
 }
@@ -49,13 +49,13 @@ type LogModel struct {
 func (t *LogModel) Init(db *db.DB, context *core.Context) error {
 	t.db = db
 	t.context = context
-	t.EntryModel = model.NewEntryModel[*Log](t.db, t.GetTableName())
+	t.EntryModel = model.NewEntryModel[*Log, uint](t.db, t.GetTableName())
 	return nil
 }
 
 func (t *LogModel) ReNew(db *db.DB, c *core.Context) core.IModel {
 	return &LogModel{
-		EntryModel: model.NewEntryModel[*Log](db, t.GetTableName()),
+		EntryModel: model.NewEntryModel[*Log, uint](db, t.GetTableName()),
 		db:         db,
 		context:    c,
 	}

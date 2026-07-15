@@ -32,7 +32,7 @@ func (mail *Mail) SetId(id uint) {
 }
 
 type MailModel struct {
-	*model.EntryModel[*Mail]
+	*model.EntryModel[*Mail, uint]
 	db      *db.DB
 	context *core.Context
 }
@@ -40,7 +40,7 @@ type MailModel struct {
 func (t *MailModel) Init(db *db.DB, context *core.Context) error {
 	t.db = db
 	t.context = context
-	t.EntryModel = model.NewEntryModel[*Mail](t.db, t.GetTableName())
+	t.EntryModel = model.NewEntryModel[*Mail, uint](t.db, t.GetTableName())
 	return nil
 }
 func (t *MailModel) GetTableName() string {
@@ -48,14 +48,14 @@ func (t *MailModel) GetTableName() string {
 }
 func (t *MailModel) ReNew(db *db.DB, c *core.Context) core.IModel {
 	return &MailModel{
-		EntryModel: model.NewEntryModel[*Mail](db, t.GetTableName()),
+		EntryModel: model.NewEntryModel[*Mail, uint](db, t.GetTableName()),
 		db:         db,
 		context:    c,
 	}
 }
 func (t *MailModel) FindMapByIds(id []uint) (map[uint]*Mail, error) {
 
-	mails, err := t.FindAllByIds(id...)
+	mails, err := t.FindAllByPK(id...)
 	if err != nil {
 		return nil, err
 	}

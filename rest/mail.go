@@ -151,7 +151,16 @@ func (m *Mail) putOne(req *web.Request) (any, error) {
 	if user == nil {
 		return nil, err
 	}
-	st.UserId = user.Id
+	exist, err := m.mailModel.FindByPK(st.Id)
+	if err != nil {
+		return nil, err
+	}
+	// Report "not found" rather than "forbidden" so we don't leak existence
+	if exist == nil || (exist.UserId != user.Id && !user.IsAdmin) {
+		return nil, errors.New("mail not found")
+	}
+	// Keep the original owner: an admin editing someone else's row must not take it over
+	st.UserId = exist.UserId
 
 	err = m.mailModel.UpdateByPK(&st)
 	if err != nil {

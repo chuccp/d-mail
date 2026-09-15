@@ -103,10 +103,8 @@ dbType    = sqlite  ## Database type, supports sqlite and mysql
 filename = d-mail.db  ## Database path
 
 [manage]
-port     = 12566      ## Management port
-username = 111111     ## Management username
-password = 111111     ## Management password
-webPath  = web        ## Management page path
+port    = 12566       ## Management port
+webPath = web         ## Directory holding the built frontend
 
 [api]
 port = 12567          ## API port
@@ -188,7 +186,16 @@ curl 'http://127.0.0.1:12567/sendMail?token={{token}}&subject=test&content=this%
 
 ## Build Instructions
 
-Compilation requires first building the frontend interface [d-mail-view](https://github.com/chuccp/d-mail-view)
+The web UI lives in [`view/`](./view). Build it first, then the server:
+
+```bash
+cd view && npm install && npm run build
+cd .. && go build -o http2smtp ./
+```
+
+The release workflow does the same and additionally copies `view/dist` to `web/` beside the
+binary. The server hosts that directory itself (key `manage.webPath`, default `web`), so the
+UI is served at `http://127.0.0.1:12566/` with no separate web server.
 
 ## UI Display
 

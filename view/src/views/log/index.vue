@@ -35,11 +35,13 @@
             {{ row.token.slice(0, 12) }}...
           </template>
         </el-table-column>
+        <el-table-column prop="smtp" :label="t('log.smtpServer')" min-width="150" show-overflow-tooltip />
+        <el-table-column prop="mail" :label="t('log.recipients')" min-width="150" show-overflow-tooltip />
         <el-table-column prop="subject" :label="t('log.subject')" min-width="150" />
-        <el-table-column prop="status" :label="t('log.status')" width="80" align="center">
+        <el-table-column prop="status" :label="t('log.status')" width="90" align="center">
           <template #default="{ row }">
-            <el-tag :type="row.status === 'success' ? 'success' : row.status === 'error' ? 'danger' : 'warning'">
-              {{ t('log.' + row.status) }}
+            <el-tag :type="statusTagType(row.statusStr)">
+              {{ t('log.' + (row.statusStr || 'unknown')) }}
             </el-tag>
           </template>
         </el-table-column>
@@ -87,9 +89,24 @@
           {{ currentDetail.result }}
         </el-descriptions-item>
         <el-descriptions-item :label="t('log.status')">
-          <el-tag :type="currentDetail.status === 'success' ? 'success' : 'danger'">
-            {{ currentDetail.status }}
+          <el-tag :type="statusTagType(currentDetail.statusStr)">
+            {{ t('log.' + (currentDetail.statusStr || 'unknown')) }}
           </el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item v-if="attachmentsOf(currentDetail).length" :label="t('log.attachments')">
+          <div class="attachment-list">
+            <el-button
+              v-for="file in attachmentsOf(currentDetail)"
+              :key="file.name"
+              size="small"
+              link
+              type="primary"
+              @click="handleDownload(currentDetail.id, file.name)"
+            >
+              <el-icon><Download /></el-icon>
+              {{ file.name }}
+            </el-button>
+          </div>
         </el-descriptions-item>
         <el-descriptions-item :label="t('log.createTime')">
           {{ formatTime(currentDetail.createTime) }}
@@ -102,8 +119,10 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { ElMessage } from 'element-plus'
+import { Download } from '@element-plus/icons-vue'
 import { formatTime } from '@/utils/time'
-import { getLogs } from '@/api/log'
+import { getLogs, downloadAttachment } from '@/api/log'
 
 const { t } = useI18n()
 
@@ -149,6 +168,37 @@ const handleDetail = (row: LogEntry) => {
   detailDialogVisible.value = true
 }
 
+const statusTagType = (status?: string) => {
+  if (status === 'success') return 'success'
+  if (status === 'error') return 'danger'
+  return 'warning'
+}
+
+// The backend stores attachments as a JSON string on the log row
+const attachmentsOf = (row: LogEntry | null): Array<{ name: string }> => {
+  if (!row?.files) return []
+  try {
+    const parsed = JSON.parse(row.files)
+    return Array.isArray(parsed) ? parsed.filter(f => f?.name) : []
+  } catch {
+    return []
+  }
+}
+
+const handleDownload = async (logId: number, fileName: string) => {
+  try {
+    const blob = await downloadAttachment(logId, fileName)
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = fileName
+    link.click()
+    window.URL.revokeObjectURL(url)
+  } catch {
+    ElMessage.error(t('log.downloadFailed'))
+  }
+}
+
 onMounted(() => {
   loadData()
 })
@@ -164,5 +214,12 @@ pre {
   word-break: break-all;
   margin: 0;
   font-family: inherit;
+}
+
+.attachment-list {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
 }
 </style>

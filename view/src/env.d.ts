@@ -78,7 +78,6 @@ interface ScheduleConfig {
   useTemplate: boolean
   template: string
   isUse: boolean
-  enable: boolean
   isSendOnlyByError: boolean
   createTime: string
   updateTime: string
@@ -86,12 +85,22 @@ interface ScheduleConfig {
 
 interface LogEntry {
   id: number
+  userId: number
+  name: string
+  mail: string
   token: string
+  smtp: string
   subject: string
   content: string
-  status: string
+  /** JSON string: [{ name, filePath }] */
+  files: string
+  /** Numeric status code from the backend (0 success, 1 warning, 2 error) */
+  status: number
+  /** Human-readable status, resolved server-side to match the log.* i18n keys */
+  statusStr: string
   result: string
   createTime: string
+  updateTime: string
 }
 
 interface UserConfig {
@@ -123,6 +132,10 @@ interface SystemInfo {
   initialized: boolean
   dbInitialized: boolean
   hasAdmin: boolean
+  hasLogin?: boolean
   isDocker: boolean
+  /** Only set when the session cookie is valid */
+  username?: string
+  isAdmin?: boolean
   version: string
 }

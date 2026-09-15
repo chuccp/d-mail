@@ -187,7 +187,8 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
-import { checkInitStatus, getDefaultSettings, testConnection, initDatabase, initAdmin, skipAdmin, checkAdminExists } from '@/api/setup'
+import { checkInitStatus, testConnection, initDatabase, initAdmin, skipAdmin, checkAdminExists } from '@/api/setup'
+import { getSettings } from '@/api/settings'
 import { useI18n } from 'vue-i18n'
 import { ChatDotRound, Loading } from '@element-plus/icons-vue'
 
@@ -296,7 +297,7 @@ onMounted(async () => {
 
   // Load default settings
   try {
-    const res = await getDefaultSettings()
+    const res = await getSettings()
     if (res.code === 0 || res.code === 200) {
       Object.assign(setupForm, res.data)
     }

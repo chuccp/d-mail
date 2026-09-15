@@ -6,6 +6,7 @@ import (
 	wf "github.com/chuccp/go-web-frame"
 	auth2 "github.com/chuccp/go-web-frame/component/auth"
 	"github.com/chuccp/go-web-frame/core"
+	framedb "github.com/chuccp/go-web-frame/db"
 	"github.com/chuccp/http2smtp/db"
 	"github.com/chuccp/http2smtp/entity"
 
@@ -23,20 +24,16 @@ type Set struct {
 
 // putSet is the original one-step init (now blocked if already init).
 func (set *Set) putSet(req *web.Request) (any, error) {
-	init := set.context.GetConfig().GetBoolOrDefault("core.init", false)
-	if init {
-		req.Response().WriteStatus(405)
-		return nil, errors.New("has init")
+	if model.CoreState(set.context.GetConfig()).Init {
+		return nil, web.NewErrorCode(web.CodeMethodNotAllowed, "has init")
 	}
 	return set.putReSet(req)
 }
 
 // putDbInit handles Step 1 of setup: save database config and test connection.
 func (set *Set) putDbInit(req *web.Request) (any, error) {
-	init := set.context.GetConfig().GetBoolOrDefault("core.init", false)
-	if init {
-		req.Response().WriteStatus(405)
-		return nil, errors.New("has init")
+	if model.CoreState(set.context.GetConfig()).Init {
+		return nil, web.NewErrorCode(web.CodeMethodNotAllowed, "has init")
 	}
 
 	setInfo := model.DefaultConfig()
@@ -114,16 +111,12 @@ func (set *Set) putDbInit(req *web.Request) (any, error) {
 
 // putAdminInit handles Step 2 of setup: create or reset admin account.
 func (set *Set) putAdminInit(req *web.Request) (any, error) {
-	init := set.context.GetConfig().GetBoolOrDefault("core.init", false)
-	if init {
-		req.Response().WriteStatus(405)
-		return nil, errors.New("has init")
+	if model.CoreState(set.context.GetConfig()).Init {
+		return nil, web.NewErrorCode(web.CodeMethodNotAllowed, "has init")
 	}
 
-	dbInit := set.context.GetConfig().GetBoolOrDefault("core.dbinit", false)
-	if !dbInit {
-		req.Response().WriteStatus(400)
-		return nil, errors.New("database not initialized, please complete step 1 first")
+	if !model.CoreState(set.context.GetConfig()).DbInit {
+		return nil, web.NewErrorCode(web.CodeBadRequest, "database not initialized, please complete step 1 first")
 	}
 
 	var u entity.LoginUser
@@ -162,16 +155,12 @@ func (set *Set) putAdminInit(req *web.Request) (any, error) {
 
 // putAdminSkip skips admin creation if an admin already exists.
 func (set *Set) putAdminSkip(req *web.Request) (any, error) {
-	init := set.context.GetConfig().GetBoolOrDefault("core.init", false)
-	if init {
-		req.Response().WriteStatus(405)
-		return nil, errors.New("has init")
+	if model.CoreState(set.context.GetConfig()).Init {
+		return nil, web.NewErrorCode(web.CodeMethodNotAllowed, "has init")
 	}
 
-	dbInit := set.context.GetConfig().GetBoolOrDefault("core.dbinit", false)
-	if !dbInit {
-		req.Response().WriteStatus(400)
-		return nil, errors.New("database not initialized, please complete step 1 first")
+	if !model.CoreState(set.context.GetConfig()).DbInit {
+		return nil, web.NewErrorCode(web.CodeBadRequest, "database not initialized, please complete step 1 first")
 	}
 
 	// Check if an admin user exists
@@ -211,8 +200,12 @@ func (set *Set) getAdminExists(req *web.Request) (any, error) {
 func (set *Set) getSet(req *web.Request) (any, error) {
 	v, err := auth.User(req, set.context)
 	hasLogin := false
+	username := ""
+	isAdmin := false
 	if err == nil && v != nil {
 		hasLogin = true
+		username = v.Name
+		isAdmin = v.IsAdmin
 	}
 	cfg, err := model.GetConfig(set.context.GetConfig())
 	if err != nil {
@@ -226,43 +219,73 @@ func (set *Set) getSet(req *web.Request) (any, error) {
 		hasAdmin, _ = userService.HasAdminUser()
 	}
 
-	return &model.System{HasInit: cfg.Core.Init, HasDbInit: cfg.Core.DbInit, HasAdmin: hasAdmin, HasLogin: hasLogin, IsDocker: cfg.Core.IsDocker}, nil
+	return &model.System{
+		HasInit:   cfg.Core.Init,
+		HasDbInit: cfg.Core.DbInit,
+		HasAdmin:  hasAdmin,
+		HasLogin:  hasLogin,
+		IsDocker:  cfg.Core.IsDocker,
+		Username:  username,
+		IsAdmin:   isAdmin,
+	}, nil
 }
 func (set *Set) defaultSet(req *web.Request) (any, error) {
-	var cfg = model.DefaultConfig()
-	err := set.context.GetConfig().Unmarshal(&cfg)
+	cfg := model.DefaultConfig()
+	err := set.context.GetConfig().Unmarshal(cfg)
 	if err != nil {
 		return nil, err
 	}
-	return cfg, nil
+	return cfg.MaskSecrets(), nil
 }
 
+// testConnection tries the database settings supplied in the request body without
+// persisting them, so a typo in the form is caught before it is saved.
+// Before setup completes it is reachable without a session (the wizard needs it);
+// afterwards it is a reconfiguration helper and requires login.
 func (set *Set) testConnection(req *web.Request) (any, error) {
-	init := set.context.GetConfig().GetBoolOrDefault("core.init", false)
-	if init {
-		req.Response().WriteStatus(405)
-		return nil, errors.New("has init")
+	if model.CoreState(set.context.GetConfig()).Init {
+		user, err := auth.User(req, set.context)
+		if user == nil {
+			return nil, err
+		}
 	}
-	db, err := db.GetDb(set.context.GetConfig())
+	setInfo := model.DefaultConfig()
+	if err := req.BindJSON(&setInfo); err != nil {
+		return nil, err
+	}
+	probe, err := openProbeDB(setInfo)
 	if err != nil {
 		return nil, err
 	}
-	if db == nil {
-		return nil, errors.New("db is nil")
+	if probe == nil {
+		return nil, errors.New("unsupported dbType: " + setInfo.Core.DbType)
+	}
+	if sqlDB, err := probe.GetGorm().DB(); err == nil {
+		defer func() { _ = sqlDB.Close() }()
 	}
 	return "ok", nil
+}
+
+// openProbeDB opens a throwaway connection from the supplied settings.
+// gorm.Open pings by default, so wrong credentials surface here as an error.
+func openProbeDB(setInfo *model.Config) (*framedb.DB, error) {
+	switch setInfo.Core.DbType {
+	case "mysql":
+		mysql := setInfo.Mysql
+		return framedb.ConnectionMysql(mysql.Host, mysql.Port, mysql.Username, mysql.Password, mysql.Dbname, mysql.Charset)
+	case "sqlite":
+		return framedb.ConnectionSQLite(setInfo.Sqlite.Filename)
+	}
+	return nil, nil
 }
 func (set *Set) readSet(req *web.Request) (any, error) {
 	cfg, err := model.GetConfig(set.context.GetConfig())
 	if err != nil {
 		return nil, err
 	}
-	return cfg, nil
+	return cfg.MaskSecrets(), nil
 }
 
-func (set *Set) reStart(req *web.Request) (any, error) {
-	return "ok", nil
-}
 func (set *Set) Init(context *core.Context) error {
 	set.context = context
 	context.Get("/set", set.getSet)
@@ -274,7 +297,6 @@ func (set *Set) Init(context *core.Context) error {
 	context.Get("/adminExists", set.getAdminExists)
 	context.Get("/readSet", set.readSet)
 	context.Put("/reSet", set.putReSet).WithMeta(auth2.WithLogin())
-	context.Post("/reStart", set.reStart).WithMeta(auth2.WithLogin())
 	context.Post("/testConnection", set.testConnection)
 	return nil
 }

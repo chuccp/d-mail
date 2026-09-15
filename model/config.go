@@ -21,13 +21,38 @@ func DefaultConfig() *Config {
 }
 
 func GetConfig(config config.IConfig) (*Config, error) {
-	var cfg = DefaultConfig()
-	err := config.Unmarshal(&cfg)
+	cfg := DefaultConfig()
+	// Pass the *Config itself, not &cfg: the decoder only applies its per-field
+	// weakly-typed conversions when the target is a struct. A **Config falls back to
+	// encoding/json, which cannot coerce the strings an INI file yields into
+	// bool/int fields ("true" -> bool, "12566" -> int).
+	err := config.Unmarshal(cfg)
 	if err != nil {
 		return nil, err
 	}
 	return cfg, nil
+}
 
+// CoreState reads the core section through the typed config.
+//
+// Do not reach for IConfig.GetBoolOrDefault("core.init") instead: values loaded from an
+// INI file are strings, and that getter only accepts a real bool, so it silently reports
+// the default. Every setup guard and the startup database attach depend on this.
+func CoreState(cfg config.IConfig) *CoreConfig {
+	c, err := GetConfig(cfg)
+	if err != nil || c.Core == nil {
+		return DefaultCoreConfig()
+	}
+	return c.Core
+}
+
+// MaskSecrets blanks credential fields so the config can be returned to clients.
+// Callers that persist config treat an empty password as "keep the existing one".
+func (cfg *Config) MaskSecrets() *Config {
+	if cfg != nil && cfg.Mysql != nil {
+		cfg.Mysql.Password = ""
+	}
+	return cfg
 }
 
 type CoreConfig struct {
@@ -113,4 +138,9 @@ type System struct {
 	HasAdmin  bool `json:"hasAdmin"`
 	HasLogin  bool `json:"hasLogin"`
 	IsDocker  bool `json:"isDocker"`
+	// Populated only when the request carries a valid session. The session itself is an
+	// HttpOnly cookie the client cannot read, so the UI needs these to render the
+	// username and decide whether to show admin-only navigation.
+	Username string `json:"username"`
+	IsAdmin  bool   `json:"isAdmin"`
 }

@@ -7,11 +7,13 @@ import (
 	wf "github.com/chuccp/go-web-frame"
 	auth2 "github.com/chuccp/go-web-frame/component/auth"
 	"github.com/chuccp/go-web-frame/core"
+	"github.com/chuccp/go-web-frame/log"
 	"github.com/chuccp/go-web-frame/web"
 	"github.com/chuccp/http2smtp/auth"
 	"github.com/chuccp/http2smtp/entity"
 	"github.com/chuccp/http2smtp/model"
 	"github.com/chuccp/http2smtp/service"
+	"go.uber.org/zap"
 )
 
 type authFilter = auth2.AuthenticationFilter[*model.User]
@@ -48,6 +50,14 @@ func (l *User) signIn(request *web.Request) (any, error) {
 }
 
 func (l *User) logout(request *web.Request) (any, error) {
+	// Clearing the cookie only stops this browser. Rotating the session salt also makes
+	// every token already issued to this user unusable, so a copied token cannot be
+	// replayed. A failure here must not block signing out.
+	if user, err := auth.User(request, l.context); err == nil && user != nil {
+		if err := l.userService.RotateSalt(user.Id); err != nil {
+			log.Error("rotate session salt failed", zap.Uint("userId", user.Id), zap.Error(err))
+		}
+	}
 	return l.authenticationFilter.SignOut(request)
 }
 

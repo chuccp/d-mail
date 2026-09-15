@@ -33,6 +33,7 @@ http2smtp
 /docker/storage
 /view/.next
 /view/node_modules
+/view/dist
 /view/.env
 /view/.env.local
 /view/.env.development.local

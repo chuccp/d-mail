@@ -60,23 +60,30 @@ jobs:
           echo "ASSET_NAME=$NAME" >> $GITHUB_OUTPUT
           echo "ASSET_NAME=$NAME" >> $GITHUB_ENV
 
-      - name: download web view
-        uses: robinraju/release-downloader@v1
+      - name: Set up Node
+        uses: actions/setup-node@v4
         with:
-          repository: 'chuccp/d-mail-view'
-          latest: true
-          fileName: 'd-mail-view.zip'
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: view/package-lock.json
 
-      - name: unzip web view
+      - name: Build web view
+        working-directory: view
         run: |
-          unzip -o d-mail-view.zip -d webview
+          npm ci
+          npm run build
+
+      - name: Stage web assets
+        run: |
           mkdir -p build_assets
-          cp -r webview ./build_assets/web
+          cp -r view/dist ./build_assets/web
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25.5'
+          # Must satisfy the go directive in go.mod, otherwise the toolchain is
+          # downloaded on every run (or the build fails outright)
+          go-version: '1.26.0'
 
       - name: Get project dependencies
         run: go mod download

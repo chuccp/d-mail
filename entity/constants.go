@@ -23,6 +23,19 @@ const (
 	ERROR
 )
 
+// StatusText maps a mail log status code to the stable string used by clients.
+func StatusText(status byte) string {
+	switch status {
+	case SUCCESS:
+		return "success"
+	case WARM:
+		return "warning"
+	case ERROR:
+		return "error"
+	}
+	return "unknown"
+}
+
 // Token state constants
 const (
 	TokenStateInUse       uint8 = 0 // 使用中

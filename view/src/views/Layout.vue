@@ -61,6 +61,11 @@
           <el-icon><User /></el-icon>
           <span>{{ t('layout.sidebar.users') }}</span>
         </el-menu-item>
+
+        <el-menu-item v-if="authStore.getIsAdmin" index="/settings">
+          <el-icon><Tools /></el-icon>
+          <span>{{ t('layout.sidebar.settings') }}</span>
+        </el-menu-item>
       </el-menu>
 
       <div class="sidebar-footer">
@@ -185,6 +190,7 @@ import {
   Clock,
   Document,
   User,
+  Tools,
   Fold,
   Expand,
   Close,
@@ -303,8 +309,8 @@ const logout = () => {
     cancelButtonText: t('common.cancel'),
     type: 'warning'
   }).then(() => {
+    // logoutAction clears the session and handles the redirect
     authStore.logoutAction()
-    router.push('/login')
   }).catch(() => {})
 }
 

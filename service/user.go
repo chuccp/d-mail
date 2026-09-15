@@ -9,8 +9,18 @@ import (
 	"github.com/chuccp/go-web-frame/web"
 	"github.com/chuccp/http2smtp/model"
 	localutil "github.com/chuccp/http2smtp/util"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
+
+// newSessionSalt returns a fresh session epoch for a user.
+//
+// Salt is not part of password hashing — bcrypt carries its own — it exists solely so a
+// previously issued session can be invalidated: the token embeds the salt it was minted
+// with, and User() only accepts it while it still matches the stored value.
+func newSessionSalt() string {
+	return uuid.NewString()
+}
 
 type UserService struct {
 	context   *core.Context
@@ -77,6 +87,7 @@ func (s *UserService) CreateUser(name, password string, isAdmin, isUse bool) err
 		Password:   hashedPassword,
 		IsAdmin:    isAdmin,
 		IsUse:      isUse,
+		Salt:       newSessionSalt(),
 		CreateTime: time.Now(),
 		UpdateTime: time.Now(),
 	}
@@ -111,6 +122,8 @@ func (s *UserService) UpdateUser(id uint, name string, password string, isAdmin,
 			return err
 		}
 		user.Password = hashedPassword
+		// A password change ends every session this user had open
+		user.Salt = newSessionSalt()
 	}
 
 	user.IsAdmin = isAdmin
@@ -152,6 +165,7 @@ func (s *UserService) CreateAdminUser(name, password string) error {
 			Password:   hashedPassword,
 			IsAdmin:    true,
 			IsUse:      true,
+			Salt:       newSessionSalt(),
 			CreateTime: time.Now(),
 			UpdateTime: time.Now(),
 		}
@@ -173,6 +187,22 @@ func (s *UserService) ResetAdminPassword(username, password string) error {
 	}
 	user.Name = username
 	user.Password = hashedPassword
+	user.Salt = newSessionSalt()
+	user.UpdateTime = time.Now()
+	return s.userModel.UpdateByPK(user)
+}
+
+// RotateSalt invalidates every session already issued for the user, including the
+// caller's own. Used on sign-out so a captured token stops working immediately.
+func (s *UserService) RotateSalt(id uint) error {
+	user, err := s.userModel.FindByPK(id)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return errors.New("user not found")
+	}
+	user.Salt = newSessionSalt()
 	user.UpdateTime = time.Now()
 	return s.userModel.UpdateByPK(user)
 }
@@ -187,6 +217,9 @@ func (s *UserService) DeleteUser(id uint) error {
 		return errors.New("user not found")
 	}
 	user.IsUse = false
+	// User() only checks the salt, not is_use, so rotate it here too: disabling an
+	// account must also end the sessions it already had open.
+	user.Salt = newSessionSalt()
 	user.UpdateTime = time.Now()
 	return s.userModel.UpdateByPK(user)
 }

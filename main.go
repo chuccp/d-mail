@@ -14,6 +14,7 @@ import (
 
 	"github.com/chuccp/go-web-frame/log"
 	"github.com/chuccp/go-web-frame/util"
+	"github.com/chuccp/go-web-frame/web"
 	"github.com/chuccp/http2smtp/auth"
 	"github.com/chuccp/http2smtp/model"
 	"github.com/chuccp/http2smtp/rest"
@@ -37,7 +38,9 @@ func createAPP() (*wf.WebFrame, error) {
 	if err != nil {
 		return nil, err
 	}
-	init := fileConfig.GetBoolOrDefault("core.init", false)
+	// Read through the typed config, not GetBoolOrDefault: an INI file yields strings,
+	// which that getter refuses, so core.init/core.dbinit would always read as false here.
+	coreState := model.CoreState(fileConfig)
 	if webPort > 0 || apiPort > 0 {
 		if apiPort == 0 {
 			apiPort = webPort
@@ -56,10 +59,20 @@ func createAPP() (*wf.WebFrame, error) {
 	if webPort == 0 {
 		webPort = model.ManagePort
 	}
+	// manage.webPath points at the built frontend; the management server serves it
+	// directly, so the UI needs no separate web server. The API keeps its /api prefix
+	// while assets are served from the site root.
+	webPath := fileConfig.GetStringOrDefault("manage.webPath", "web")
+
 	restGroupBuilder := core.NewRestGroupBuilder()
 	restGroupBuilder.Rest(&rest.Set{}, &rest.User{}, &rest.Token{}, &rest.Mail{}, &rest.Smtp{}, &rest.Schedule{}, &rest.Log{})
 	restGroupBuilder.Port(webPort)
 	restGroupBuilder.ContextPath("/api")
+	restGroupBuilder.ServerConfig(&web.ServerConfig{
+		Locations: []string{webPath},
+		// Serve index.html for unmatched HTML requests so client-side routes deep-link
+		Page404: "index.html",
+	})
 	restGroupBuilder.Filter(cors.NewCrosFilter(), auth2.NewAuthenticationFilter[*model.User](&auth.Authentication{}))
 	restGroup := restGroupBuilder.Build()
 
@@ -84,7 +97,7 @@ func createAPP() (*wf.WebFrame, error) {
 		&model.UserModel{},
 	)
 
-	if init || fileConfig.GetBoolOrDefault("core.dbinit", false) {
+	if coreState.Init || coreState.DbInit {
 		connection, err := db.GetDb(fileConfig)
 		if err != nil {
 			return nil, err

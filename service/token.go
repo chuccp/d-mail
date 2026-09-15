@@ -93,7 +93,13 @@ func (l *TokenService) SendApiCallMail(schedule *model.Schedule) error {
 	}
 	if byToken.IsUse() {
 		l.supplementToken(byToken)
-		body, err0 := smtp.SendAPIMail2(schedule, byToken.SMTP, byToken.ReceiveEmails)
+		var body string
+		var err0 error
+		if byToken.SMTP == nil {
+			err0 = errors.New("SMTP not found")
+		} else {
+			body, err0 = smtp.SendAPIMail2(schedule, byToken.SMTP, byToken.ReceiveEmails)
+		}
 		if err0 != nil {
 			log.Error("SendAPIMail log error", zap.Error(err0))
 		}
@@ -101,7 +107,7 @@ func (l *TokenService) SendApiCallMail(schedule *model.Schedule) error {
 		if err2 != nil {
 			log.Error("SendAPIMail log error", zap.Error(err2))
 		}
-		return err
+		return err0
 	}
 	return errors.New("token is not use")
 }
@@ -129,7 +135,9 @@ func (l *TokenService) sendMailWithToken(byToken *model.Token, recipients []stri
 	return "error", err2
 }
 
-func (l *TokenService) SendMailByToken(req *web.Request) (any, error) {
+// SendMailByToken serves both the public API (user == nil, token is the only credential)
+// and the management endpoint (user set, so a token can only be used by its owner).
+func (l *TokenService) SendMailByToken(req *web.Request, user *model.User) (any, error) {
 	l.lock.Lock()
 	defer l.lock.Unlock()
 	var sendMailApi entity.SendMailApi
@@ -149,6 +157,10 @@ func (l *TokenService) SendMailByToken(req *web.Request) (any, error) {
 		return nil, err
 	}
 	if byToken == nil {
+		return nil, errors.New("token not found")
+	}
+	// Report "not found" rather than "forbidden" so we don't leak token existence
+	if user != nil && !user.IsAdmin && byToken.UserId != user.Id {
 		return nil, errors.New("token not found")
 	}
 	if !byToken.IsUse() {

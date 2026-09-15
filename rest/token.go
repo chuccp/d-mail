@@ -90,11 +90,19 @@ func (token *Token) putOne(req *web.Request) (any, error) {
 	if user == nil {
 		return nil, err
 	}
-	st.UserId = user.Id
+	exist, err := token.tokenModel.FindByPK(st.Id)
+	if err != nil {
+		return nil, err
+	}
+	// Report "not found" rather than "forbidden" so we don't leak existence
+	if exist == nil || (exist.UserId != user.Id && !user.IsAdmin) {
+		return nil, errors.New("token not found")
+	}
+	// Keep the original owner: an admin editing someone else's row must not take it over
+	st.UserId = exist.UserId
 	st.ReceiveEmailIds = util.DeduplicateIds(st.ReceiveEmailIds)
 	// 保留原有 token
-	exist, _ := token.tokenModel.FindByPK(st.Id)
-	if exist != nil && exist.Token != "" {
+	if exist.Token != "" {
 		st.Token = exist.Token
 	}
 	st.State = token.resolveState(st.State, user.IsAdmin)
@@ -117,7 +125,11 @@ func (token *Token) resolveState(state uint8, isAdmin bool) uint8 {
 }
 
 func (token *Token) sendMail(req *web.Request) (any, error) {
-	return token.tokenService.SendMailByToken(req)
+	user, err := auth.User(req, token.context)
+	if user == nil {
+		return nil, err
+	}
+	return token.tokenService.SendMailByToken(req, user)
 }
 
 func (token *Token) sendMailById(req *web.Request) (any, error) {

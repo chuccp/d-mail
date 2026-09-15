@@ -39,7 +39,8 @@ export default {
     loginSuccess: 'Login successful',
     loginFailed: 'Login failed',
     pleaseEnterUsername: 'Please enter username',
-    pleaseEnterPassword: 'Please enter password'
+    pleaseEnterPassword: 'Please enter password',
+    noPermission: 'You do not have permission to access this page'
   },
 
   // Setup
@@ -164,6 +165,7 @@ export default {
     pleaseSelectSMTP: 'Please select an SMTP server',
     pleaseSelectRecipients: 'Please select at least one recipient',
     tokenGenerated: 'Token generated, please copy it now: {token}',
+    subjectPlaceholder: 'Used when a send request omits the subject',
     adminCreated: 'Admin created only'
   },
 
@@ -183,6 +185,8 @@ export default {
     template: 'Template Content',
     templatePlaceholder: 'JSON fields from API response can be used directly, e.g. {{.key}}, {{.nested.key}}\n\nExample:\nStatus: {{.status}}\nMessage: {{.message}}\nTime: {{.timestamp}}',
     templateHelp: 'Uses Go template syntax',
+    onlySendByError: 'Send on failure only',
+    onlySendByErrorHelp: 'Only send mail when the request fails or returns 4xx/5xx',
     status: 'Status',
     enabled: 'Enabled',
     disabled: 'Disabled',
@@ -211,6 +215,8 @@ export default {
     recipients: 'Recipients',
     attachments: 'Attachments',
     download: 'Download',
+    downloadFailed: 'Failed to download the attachment',
+    unknown: 'Unknown',
     noResults: 'No logs found',
     clear: 'Clear',
     success: 'Success',
@@ -235,6 +241,7 @@ export default {
     mysqlDatabase: 'Database Name',
     mysqlUser: 'MySQL Username',
     mysqlPassword: 'MySQL Password',
+    passwordKeepHint: 'Leave blank to keep the current password',
     mysqlCharset: 'MySQL Charset',
     adminUsername: 'Admin Username',
     newPassword: 'New Password',

@@ -71,9 +71,20 @@ const routes: RouteRecordRaw[] = [
         path: 'users',
         name: 'UserManagement',
         component: () => import('@/views/user/index.vue'),
-        meta: { titleKey: 'user.userManagement', requiresAuth: true }
+        meta: { titleKey: 'user.userManagement', requiresAuth: true, requiresAdmin: true }
+      },
+      {
+        path: 'settings',
+        name: 'SystemSettings',
+        component: () => import('@/views/settings/index.vue'),
+        meta: { titleKey: 'settings.systemSettings', requiresAuth: true, requiresAdmin: true }
       }
     ]
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
+    redirect: '/'
   }
 ]
 
@@ -98,6 +109,10 @@ router.beforeEach((to, from) => {
     if (!authStore.isLoggedIn) {
       ElMessage.error(t('auth.pleaseEnterUsername'))
       return '/'
+    }
+    if (to.meta.requiresAdmin && !authStore.getIsAdmin) {
+      ElMessage.error(t('auth.noPermission'))
+      return '/dashboard'
     }
   }
 })

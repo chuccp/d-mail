@@ -34,11 +34,10 @@ onMounted(async () => {
         router.push('/login')
         return
       }
-      if (authStore.isLoggedIn) {
-        router.push('/dashboard')
-        return
-      }
-      router.push('/login')
+      // The server confirmed a valid session cookie. Mirror it into the store so the
+      // UI has the username and role — the cookie itself is HttpOnly and unreadable.
+      authStore.setSession(systemInfo.username ?? '', systemInfo.isAdmin ?? false)
+      router.push('/dashboard')
     }
   } catch (e) {
     console.error('Check system status error', e)

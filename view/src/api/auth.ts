@@ -1,6 +1,6 @@
 import request from './request'
 
-export function getSystemInfo(): Promise<ApiResponse<any>> {
+export function getSystemInfo(): Promise<ApiResponse<SystemInfo>> {
   return request.get('/set').then(res => {
     return {
       code: res.code,
@@ -10,7 +10,11 @@ export function getSystemInfo(): Promise<ApiResponse<any>> {
         dbInitialized: res.data?.hasDbInit ?? false,
         hasAdmin: res.data?.hasAdmin ?? false,
         hasLogin: res.data?.hasLogin,
-        isDocker: res.data?.isDocker
+        isDocker: res.data?.isDocker,
+        // Present only when the session cookie is valid; the cookie itself is HttpOnly
+        username: res.data?.username ?? '',
+        isAdmin: res.data?.isAdmin ?? false,
+        version: ''
       }
     }
   })

@@ -21,7 +21,10 @@ func (l *LogService) log(st *model.SMTP, mails []*model.Mail, tokenName string, 
 	var lg model.Log
 	lg.Token = token
 	lg.Name = tokenName
-	lg.SMTP = util.FormatMail(st.Username, st.Mail)
+	// st may be nil when the referenced SMTP server was deleted
+	if st != nil {
+		lg.SMTP = util.FormatMail(st.Username, st.Mail)
+	}
 	b := new(buffer.Buffer)
 	for _, mail := range mails {
 		b.AppendString(",")

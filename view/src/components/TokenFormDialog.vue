@@ -29,6 +29,13 @@
       <el-form-item :label="t('token.allowedRecipients')" prop="receiveEmailIds">
         <RecipientSelector v-model="selectedRecipientIds" />
       </el-form-item>
+      <el-form-item :label="t('token.subject')" prop="subject">
+        <el-input
+          v-model="form.subject"
+          :placeholder="t('token.subjectPlaceholder')"
+          clearable
+        />
+      </el-form-item>
       <el-form-item :label="t('common.status')" prop="state">
         <el-switch
           v-model="form.state"
@@ -83,6 +90,7 @@ const defaultForm: Partial<TokenConfig> = {
   token: generateRandomString(32),
   SMTPId: 0,
   receiveEmailIds: '',
+  subject: '',
   state: 0
 }
 

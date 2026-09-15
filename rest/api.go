@@ -13,7 +13,8 @@ type API struct {
 }
 
 func (s *API) SendMail(req *web.Request) (any, error) {
-	return s.tokenService.SendMailByToken(req)
+	// nil user: the API port has no session, the token itself is the credential
+	return s.tokenService.SendMailByToken(req, nil)
 }
 
 func (s *API) Init(context *core.Context) error {

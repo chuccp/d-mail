@@ -87,6 +87,9 @@ func (schedule *Schedule) postOne(req *web.Request) (any, error) {
 	if err != nil {
 		return nil, err
 	}
+	if err = schedule.ensureTokenOwnedBy(st.TokenId, st.UserId); err != nil {
+		return nil, err
+	}
 	err = schedule.scheduleService.Save(&st)
 	if err != nil {
 		return nil, err
@@ -103,9 +106,21 @@ func (schedule *Schedule) putOne(req *web.Request) (any, error) {
 	if user == nil {
 		return nil, err
 	}
-	st.UserId = user.Id
+	exist, err := schedule.scheduleModel.FindByPK(st.Id)
+	if err != nil {
+		return nil, err
+	}
+	// Report "not found" rather than "forbidden" so we don't leak existence
+	if exist == nil || (exist.UserId != user.Id && !user.IsAdmin) {
+		return nil, errors.New("schedule not found")
+	}
+	// Keep the original owner: an admin editing someone else's row must not take it over
+	st.UserId = exist.UserId
 	err = schedule.validate(&st)
 	if err != nil {
+		return nil, err
+	}
+	if err = schedule.ensureTokenOwnedBy(st.TokenId, st.UserId); err != nil {
 		return nil, err
 	}
 	err = schedule.scheduleService.Edit(&st)
@@ -113,6 +128,18 @@ func (schedule *Schedule) putOne(req *web.Request) (any, error) {
 		return nil, err
 	}
 	return web.Ok("ok"), nil
+}
+
+// ensureTokenOwnedBy rejects a schedule that points at a token the owner does not hold.
+func (schedule *Schedule) ensureTokenOwnedBy(tokenId uint, userId uint) error {
+	byToken, err := schedule.tokenService.GetOne(tokenId, userId)
+	if err != nil {
+		return err
+	}
+	if byToken == nil {
+		return errors.New("token not found")
+	}
+	return nil
 }
 func (schedule *Schedule) sendMail(req *web.Request) (any, error) {
 	var st model.Schedule
@@ -123,6 +150,14 @@ func (schedule *Schedule) sendMail(req *web.Request) (any, error) {
 	if st.TokenId == 0 {
 		return nil, errors.New("tokenId is required")
 	}
+	user, err := auth.User(req, schedule.context)
+	if user == nil {
+		return nil, err
+	}
+	if err = schedule.ensureTokenOwnedBy(st.TokenId, user.Id); err != nil {
+		return nil, err
+	}
+	st.UserId = user.Id
 	err = schedule.validate(&st)
 	if err != nil {
 		return nil, err
@@ -199,7 +234,7 @@ func (schedule *Schedule) Init(context *core.Context) error {
 	context.Put("/schedule", schedule.putOne).WithMeta(auth2.WithLogin())
 	context.Post("/schedule/trigger/:id", schedule.triggerById).WithMeta(auth2.WithLogin())
 	context.Post("/sendMailBySchedule", schedule.sendMail).WithMeta(auth2.WithLogin())
-	context.Any("/scheduleTestApi", schedule.scheduleTestApi)
+	context.Any("/scheduleTestApi", schedule.scheduleTestApi).WithMeta(auth2.WithLogin())
 	schedule.scheduleService = wf.GetService[*service.ScheduleService](schedule.context)
 	schedule.tokenService = wf.GetService[*service.TokenService](schedule.context)
 	schedule.scheduleModel = wf.GetModel[*model.ScheduleModel](schedule.context)

@@ -39,7 +39,8 @@ export default {
     loginSuccess: '登录成功',
     loginFailed: '登录失败',
     pleaseEnterUsername: '请输入用户名',
-    pleaseEnterPassword: '请输入密码'
+    pleaseEnterPassword: '请输入密码',
+    noPermission: '没有访问权限'
   },
 
   // Setup
@@ -164,6 +165,7 @@ export default {
     pleaseSelectSMTP: '请选择 SMTP 服务器',
     pleaseSelectRecipients: '请至少选择一个收件人',
     tokenGenerated: '令牌已生成，请立即复制保存：{token}',
+    subjectPlaceholder: '发送请求未指定主题时使用',
     adminCreated: '仅管理员创建'
   },
 
@@ -183,6 +185,8 @@ export default {
     template: '模板内容',
     templatePlaceholder: '接口返回的 JSON 字段可直接用于模板，如 {{.key}}、{{.nested.key}}\n\n示例：\n状态: {{.status}}\n消息: {{.message}}\n时间: {{.timestamp}}',
     templateHelp: '使用 Go 模板语法',
+    onlySendByError: '仅失败时发送',
+    onlySendByErrorHelp: '仅在接口请求失败或返回 4xx/5xx 时发送邮件',
     status: '状态',
     enabled: '启用',
     disabled: '禁用',
@@ -211,6 +215,8 @@ export default {
     recipients: '收件人',
     attachments: '附件',
     download: '下载',
+    downloadFailed: '附件下载失败',
+    unknown: '未知',
     noResults: '未找到日志',
     clear: '清除',
     success: '成功',
@@ -235,6 +241,7 @@ export default {
     mysqlDatabase: '数据库名',
     mysqlUser: 'MySQL 用户名',
     mysqlPassword: 'MySQL 密码',
+    passwordKeepHint: '留空表示不修改',
     mysqlCharset: 'MySQL 字符集',
     adminUsername: '管理员用户名',
     newPassword: '新密码',

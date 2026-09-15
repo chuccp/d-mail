@@ -2,7 +2,7 @@
   <div class="settings-container app-container">
     <el-row :gutter="20">
       <el-col :span="24">
-        <el-card>
+        <el-card v-loading="loading">
           <template #header>
             <h3>{{ t('settings.generalSettings') }}</h3>
           </template>
@@ -24,7 +24,7 @@
 
     <el-row :gutter="20" style="margin-top: 20px;">
       <el-col :span="24">
-        <el-card>
+        <el-card v-loading="loading">
           <template #header>
             <h3>{{ t('settings.databaseConfig') }}</h3>
           </template>
@@ -55,7 +55,12 @@
                 <el-input v-model="settingsForm.dbUser" />
               </el-form-item>
               <el-form-item :label="t('settings.mysqlPassword')">
-                <el-input v-model="settingsForm.dbPass" type="password" show-password/>
+                <el-input
+                  v-model="settingsForm.dbPass"
+                  type="password"
+                  show-password
+                  :placeholder="t('settings.passwordKeepHint')"
+                />
               </el-form-item>
               <el-form-item :label="t('settings.mysqlCharset')">
                 <el-input v-model="settingsForm.dbCharset" />
@@ -66,37 +71,10 @@
       </el-col>
     </el-row>
 
-    <el-row :gutter="20" style="margin-top: 20px;">
-      <el-col :span="24">
-        <el-card>
-          <template #header>
-            <h3>{{ t('settings.adminAccount') }}</h3>
-          </template>
-          <el-form
-            :model="adminForm"
-            label-width="140px"
-          >
-            <el-form-item :label="t('settings.adminUsername')">
-              <el-input v-model="adminForm.username" />
-            </el-form-item>
-            <el-form-item :label="t('settings.newPassword')">
-              <el-input v-model="adminForm.password" type="password" show-password/>
-            </el-form-item>
-            <el-form-item :label="t('settings.confirmPassword')">
-              <el-input v-model="adminForm.confirmPassword" type="password" show-password/>
-            </el-form-item>
-          </el-form>
-        </el-card>
-      </el-col>
-    </el-row>
-
     <el-row style="margin-top: 20px;">
       <el-col :span="24">
         <el-button type="primary" size="large" :loading="saving" @click="handleSave">
           {{ t('settings.saveSettings') }}
-        </el-button>
-        <el-button type="danger" size="large" :loading="restarting" @click="handleRestart">
-          {{ t('settings.restartSystem') }}
         </el-button>
       </el-col>
     </el-row>
@@ -105,14 +83,14 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { ElMessageBox, ElMessage } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
-import request from '@/api/request'
+import { getSettings, updateSettings } from '@/api/settings'
 
 const { t } = useI18n()
 
+const loading = ref(false)
 const saving = ref(false)
-const restarting = ref(false)
 
 const settingsForm = reactive<SetInfo>({
   webPort: 12566,
@@ -129,86 +107,30 @@ const settingsForm = reactive<SetInfo>({
   adminPass: ''
 })
 
-const adminForm = reactive({
-  username: '',
-  password: '',
-  confirmPassword: ''
-})
-
 const loadData = async () => {
+  loading.value = true
   try {
-    const res: any = await request.get('/readSet')
-    const d = res.data || res
-    settingsForm.webPort = d?.manage?.port ?? 12566
-    settingsForm.apiPort = d?.api?.port ?? 12567
-    settingsForm.dbType = d?.dbType ?? 'sqlite'
-    settingsForm.dbHost = d?.mysql?.host ?? '127.0.0.1'
-    settingsForm.dbPort = d?.mysql?.port ?? 3306
-    settingsForm.dbName = d?.mysql?.dbname ?? ''
-    settingsForm.dbUser = d?.mysql?.username ?? ''
-    settingsForm.dbPass = d?.mysql?.password ?? ''
-    settingsForm.dbCharset = d?.mysql?.charset ?? 'utf8mb4'
-    settingsForm.dbFile = d?.sqlite?.filename ?? 'data.db'
-    settingsForm.adminUser = d?.manage?.username ?? ''
-    adminForm.username = settingsForm.adminUser
+    const res = await getSettings()
+    Object.assign(settingsForm, res.data)
   } catch {
-    // ignore
+    // interceptor already surfaced the error
+  } finally {
+    loading.value = false
   }
 }
 
 const handleSave = async () => {
-  if (adminForm.password && adminForm.password !== adminForm.confirmPassword) {
-    ElMessage.error(t('settings.passwordsNotMatch'))
-    return
-  }
-
-  const payload: any = {
-    dbType: settingsForm.dbType,
-    sqlite: { filename: settingsForm.dbFile },
-    mysql: {
-      host: settingsForm.dbHost,
-      port: settingsForm.dbPort,
-      dbname: settingsForm.dbName,
-      username: settingsForm.dbUser,
-      password: settingsForm.dbPass,
-      charset: settingsForm.dbCharset
-    },
-    manage: {
-      port: settingsForm.webPort,
-      username: adminForm.username || settingsForm.adminUser,
-      password: adminForm.password || settingsForm.adminPass
-    },
-    api: { port: settingsForm.apiPort }
-  }
-
   saving.value = true
   try {
-    await request.put('/reSet', payload)
+    await updateSettings(settingsForm)
     ElMessage.success(t('settings.settingsSaved'))
+    // Reload so the masked password field does not keep a stale value
+    await loadData()
+  } catch {
+    // interceptor already surfaced the error
   } finally {
     saving.value = false
   }
-}
-
-const handleRestart = () => {
-  ElMessageBox.confirm(
-    t('settings.restartConfirm'),
-    t('common.confirm'),
-    {
-      confirmButtonText: t('common.confirm'),
-      cancelButtonText: t('common.cancel'),
-      type: 'warning'
-    }
-  ).then(async () => {
-    restarting.value = true
-    try {
-      await request.post('/reStart')
-      ElMessage.success(t('settings.systemRestarted'))
-      ElMessage.info(t('settings.pleaseWait'))
-    } finally {
-      restarting.value = false
-    }
-  }).catch(() => {})
 }
 
 onMounted(() => {

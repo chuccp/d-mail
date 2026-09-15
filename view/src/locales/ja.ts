@@ -39,7 +39,8 @@ export default {
     loginSuccess: 'ログインに成功しました',
     loginFailed: 'ログインに失敗しました',
     pleaseEnterUsername: 'ユーザー名を入力してください',
-    pleaseEnterPassword: 'パスワードを入力してください'
+    pleaseEnterPassword: 'パスワードを入力してください',
+    noPermission: 'このページにアクセスする権限がありません'
   },
 
   // Setup
@@ -164,6 +165,7 @@ export default {
     pleaseSelectSMTP: 'SMTP サーバーを選択してください',
     pleaseSelectRecipients: '受信者を少なくとも 1 人選択してください',
     tokenGenerated: 'トークンが生成されました。すぐにコピーして保存してください：{token}',
+    subjectPlaceholder: '送信リクエストで件名が未指定の場合に使用されます',
     adminCreated: '管理者作成のみ'
   },
 
@@ -183,6 +185,8 @@ export default {
     template: 'テンプレート内容',
     templatePlaceholder: 'APIレスポンスのJSONフィールドをそのまま使用できます。例: {{.key}}、{{.nested.key}}\n\n例：\nステータス: {{.status}}\nメッセージ: {{.message}}\n時刻: {{.timestamp}}',
     templateHelp: 'Goテンプレート構文を使用',
+    onlySendByError: '失敗時のみ送信',
+    onlySendByErrorHelp: 'リクエストの失敗または 4xx/5xx 応答の場合のみメールを送信します',
     status: 'ステータス',
     enabled: '有効',
     disabled: '無効',
@@ -211,6 +215,8 @@ export default {
     recipients: '受信者',
     attachments: '添付ファイル',
     download: 'ダウンロード',
+    downloadFailed: '添付ファイルのダウンロードに失敗しました',
+    unknown: '不明',
     noResults: 'ログが見つかりません',
     clear: 'クリア',
     success: '成功',
@@ -235,6 +241,7 @@ export default {
     mysqlDatabase: 'データベース名',
     mysqlUser: 'MySQL ユーザー名',
     mysqlPassword: 'MySQL パスワード',
+    passwordKeepHint: '空欄のままにすると変更されません',
     mysqlCharset: 'MySQL 文字セット',
     adminUsername: '管理者ユーザー名',
     newPassword: '新しいパスワード',

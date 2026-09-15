@@ -14,8 +14,10 @@ declare module 'axios' {
 }
 import { ElMessage } from 'element-plus'
 
+// The session is an HttpOnly cookie, so requests must carry credentials and stay
+// same-origin (in dev the Vite proxy forwards /api to the backend).
 const request = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? 'http://127.0.0.1:12566/api' : '/api'),
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
   timeout: 10000,
   withCredentials: true
 })
@@ -25,20 +27,16 @@ let isRedirecting = false
 const handleUnauthorized = () => {
   if (isRedirecting) return
   isRedirecting = true
-  localStorage.removeItem('http2smtp-token')
   localStorage.removeItem('http2smtp-username')
   localStorage.removeItem('http2smtp-isAdmin')
+  localStorage.removeItem('http2smtp-logged-in')
   ElMessage.error('登录已过期，请重新登录')
   window.location.href = '/login'
 }
 
-// 请求拦截器
+// 请求拦截器：会话由 HttpOnly cookie 承载，无需手动附加凭据
 request.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem('http2smtp-token')
-    if (token) {
-      config.headers.Authorization = token
-    }
     return config
   },
   (error: any) => {

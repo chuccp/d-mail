@@ -122,6 +122,9 @@ func (l *ScheduleService) GetOne(id int, userId uint) (*model.Schedule, error) {
 	if err != nil {
 		return nil, err
 	}
+	if byToken == nil {
+		return nil, errors.New("token not found")
+	}
 	one.TokenId = byToken.Id
 	return one, nil
 }

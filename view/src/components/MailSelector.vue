@@ -24,7 +24,7 @@
         stripe
         v-loading="loading"
         highlight-current-row
-        :row-key="(row: MailConfig) => row.id"
+        :row-key="(row: MailConfig) => String(row.id)"
         max-height="400"
       >
         <el-table-column label="" width="50" align="center">

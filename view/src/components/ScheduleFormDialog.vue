@@ -67,6 +67,12 @@
           <a href="https://pkg.go.dev/text/template" target="_blank" rel="noopener">Go template →</a>
         </div>
       </el-form-item>
+      <el-form-item :label="t('schedule.onlySendByError')" prop="isSendOnlyByError">
+        <el-switch v-model="form.isSendOnlyByError" />
+        <div class="help-text">
+          {{ t('schedule.onlySendByErrorHelp') }}
+        </div>
+      </el-form-item>
       <el-form-item :label="t('common.status')" prop="isUse">
         <el-switch v-model="form.isUse" />
       </el-form-item>
@@ -127,7 +133,8 @@ const defaultForm: Partial<ScheduleConfig> = {
   headers: [] as any,
   body: '',
   useTemplate: false,
-  isUse: true
+  isUse: true,
+  isSendOnlyByError: false
 }
 
 const form = ref<Partial<ScheduleConfig>>({ ...defaultForm })

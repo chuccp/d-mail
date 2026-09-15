@@ -39,7 +39,8 @@ export default {
     loginSuccess: '登入成功',
     loginFailed: '登入失敗',
     pleaseEnterUsername: '請輸入使用者名稱',
-    pleaseEnterPassword: '請輸入密碼'
+    pleaseEnterPassword: '請輸入密碼',
+    noPermission: '沒有存取權限'
   },
 
   // Setup
@@ -164,6 +165,7 @@ export default {
     pleaseSelectSMTP: '請選擇 SMTP 伺服器',
     pleaseSelectRecipients: '請至少選擇一個收件人',
     tokenGenerated: '權杖已產生，請立即複製儲存：{token}',
+    subjectPlaceholder: '發送請求未指定主旨時使用',
     adminCreated: '僅管理員建立'
   },
 
@@ -183,6 +185,8 @@ export default {
     template: '範本內容',
     templatePlaceholder: 'API 回傳的 JSON 欄位可直接用於範本，如 {{.key}}、{{.nested.key}}\n\n範例：\n狀態: {{.status}}\n訊息: {{.message}}\n時間: {{.timestamp}}',
     templateHelp: '使用 Go 範本語法',
+    onlySendByError: '僅失敗時發送',
+    onlySendByErrorHelp: '僅在介面請求失敗或回傳 4xx/5xx 時發送郵件',
     status: '狀態',
     enabled: '啟用',
     disabled: '停用',
@@ -211,6 +215,8 @@ export default {
     recipients: '收件人',
     attachments: '附件',
     download: '下載',
+    downloadFailed: '附件下載失敗',
+    unknown: '未知',
     noResults: '未找到日誌',
     clear: '清除',
     success: '成功',
@@ -235,6 +241,7 @@ export default {
     mysqlDatabase: '資料庫名稱',
     mysqlUser: 'MySQL 使用者名稱',
     mysqlPassword: 'MySQL 密碼',
+    passwordKeepHint: '留空表示不修改',
     mysqlCharset: 'MySQL 字元集',
     adminUsername: '管理員使用者名稱',
     newPassword: '新密碼',

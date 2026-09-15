@@ -1,6 +1,8 @@
 package auth
 
 import (
+	"net/http"
+
 	auth2 "github.com/chuccp/go-web-frame/component/auth"
 	"github.com/chuccp/go-web-frame/core"
 	"github.com/chuccp/go-web-frame/web"
@@ -22,7 +24,17 @@ func (authentication *Authentication) SignIn(user any, request *web.Request) (an
 	if err != nil {
 		return nil, err
 	}
-	request.Cookie().Set(encrypt, encrypt)
+	// The session travels as an HttpOnly cookie, so the browser sends it automatically and
+	// page script cannot read it.
+	//
+	// The name must be a valid RFC 6265 token. The ciphertext is base64 and contains '='
+	// padding, so using it as the cookie name makes http.SetCookie drop the cookie
+	// silently — which is why no Set-Cookie was ever emitted and User() could never find
+	// the cookie it looks up by entity.UserToken.
+	request.Cookie().Set(entity.UserToken, encrypt,
+		web.WithHttpOnly(true),
+		web.WithSameSite(http.SameSiteLaxMode),
+	)
 	return encrypt, nil
 }
 func (authentication *Authentication) SignOut(request *web.Request) (any, error) {

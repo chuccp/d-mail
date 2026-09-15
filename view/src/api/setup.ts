@@ -23,6 +23,11 @@ export function testConnection(settings: SetInfo): Promise<ApiResponse<any>> {
 }
 
 // Step 1: Initialize database connection
+//
+// The wizard only displays the ports, but they are echoed back here on purpose: the
+// backend binds the body onto model.DefaultConfig(), so an omitted port falls back to
+// 12566/12567 and gets persisted, clobbering whatever the instance was started with.
+// These are the values readSet reported, so writing them back changes nothing.
 export function initDatabase(settings: SetInfo): Promise<ApiResponse<any>> {
   return request.put('/dbInit', {
     ...dbPayload(settings),

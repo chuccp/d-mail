@@ -79,15 +79,21 @@
             </el-form-item>
           </template>
 
+          <!-- Read-only: the ports are fixed at startup by the flags or config.ini,
+               so the wizard reports them instead of letting the user edit them -->
           <template v-if="!isDocker">
             <el-divider content-position="left">{{ t('setup.portConfig') }}</el-divider>
 
-            <el-form-item :label="t('setup.webPort')" prop="webPort">
-              <el-input-number v-model="setupForm.webPort" :min="1" :max="65535" />
+            <el-form-item :label="t('setup.webPort')">
+              <span class="port-value">{{ setupForm.webPort }}</span>
             </el-form-item>
 
-            <el-form-item :label="t('setup.apiPort')" prop="apiPort">
-              <el-input-number v-model="setupForm.apiPort" :min="1" :max="65535" />
+            <el-form-item :label="t('setup.apiPort')">
+              <span class="port-value">{{ setupForm.apiPort }}</span>
+            </el-form-item>
+
+            <el-form-item>
+              <span class="port-hint">{{ t('setup.portHint') }}</span>
             </el-form-item>
           </template>
 
@@ -452,10 +458,17 @@ const handleSkipAdmin = async () => {
   margin-bottom: 20px;
 }
 
-.admin-name-display {
+.admin-name-display,
+.port-value {
   font-size: 14px;
   font-weight: 600;
   color: #303133;
+}
+
+.port-hint {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #909399;
 }
 
 .setup-card {

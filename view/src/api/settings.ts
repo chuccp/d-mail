@@ -49,3 +49,10 @@ export function updateSettings(settings: SetInfo): Promise<ApiResponse<any>> {
     api: { port: settings.apiPort }
   })
 }
+
+// Restarts the process so startup-only settings (the ports) take effect. The response
+// carries the ports now in effect — the management port may no longer be the one this
+// page was loaded from.
+export function restartSystem(): Promise<ApiResponse<{ managePort: number; apiPort: number }>> {
+  return request.post('/restart', {})
+}

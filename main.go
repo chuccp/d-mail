@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"strconv"
 
 	wf "github.com/chuccp/go-web-frame"
 	auth2 "github.com/chuccp/go-web-frame/component/auth"
@@ -41,19 +42,41 @@ func createAPP() (*wf.WebFrame, error) {
 	// Read through the typed config, not GetBoolOrDefault: an INI file yields strings,
 	// which that getter refuses, so core.init/core.dbinit would always read as false here.
 	coreState := model.CoreState(fileConfig)
-	if webPort > 0 || apiPort > 0 {
+	// A port given on the command line or through the environment marks the instance as
+	// running in Docker: it is the container's run command (and its port mapping) that
+	// fixes the ports, so the UI may not move them — RestartService reads this flag and
+	// leaves them where they are.
+	dockerPorts := webPort > 0 || apiPort > 0
+	if dockerPorts {
 		if apiPort == 0 {
 			apiPort = webPort
 		}
 		if webPort == 0 {
 			webPort = apiPort
 		}
-		fileConfig.Put("core.isdocker", "true")
 		fileConfig.Put("manage.port", webPort)
 		fileConfig.Put("api.port", apiPort)
 	}
+	// Written on every start, either way: the flag is persisted with the rest of the file,
+	// and one left behind by an earlier container run would otherwise keep claiming Docker
+	// and lock the ports for good.
+	fileConfig.Put("core.isdocker", strconv.FormatBool(dockerPorts))
 	if len(storageRoot) > 0 {
 		fileConfig.Put("core.cachepath", storageRoot)
+	}
+	// Without a flag or environment value the port comes from config.ini — the file the
+	// setup wizard and the settings page write — and only then from the built-in default.
+	// The typed config is what makes the INI's string values work here; reading the file
+	// this way is also what lets a port saved in the UI survive a process restart.
+	cfg, err := model.GetConfig(fileConfig)
+	if err != nil {
+		return nil, err
+	}
+	if webPort == 0 && cfg.Manage != nil && cfg.Manage.Port > 0 {
+		webPort = cfg.Manage.Port
+	}
+	if apiPort == 0 && cfg.Api != nil && cfg.Api.Port > 0 {
+		apiPort = cfg.Api.Port
 	}
 	builder := wf.NewBuilder(fileConfig)
 	if webPort == 0 {
@@ -68,11 +91,15 @@ func createAPP() (*wf.WebFrame, error) {
 	restGroupBuilder.Rest(&rest.Set{}, &rest.User{}, &rest.Token{}, &rest.Mail{}, &rest.Smtp{}, &rest.Schedule{}, &rest.Log{})
 	restGroupBuilder.Port(webPort)
 	restGroupBuilder.ContextPath("/api")
-	restGroupBuilder.ServerConfig(&web.ServerConfig{
+	// Both server configs are kept: a restart re-runs these same groups, so the restart
+	// endpoint rewrites the ports here to make a port saved in the UI take effect.
+	manageServerConfig := &web.ServerConfig{
+		Port:      webPort,
 		Locations: []string{webPath},
 		// Serve index.html for unmatched HTML requests so client-side routes deep-link
 		Page404: "index.html",
-	})
+	}
+	restGroupBuilder.ServerConfig(manageServerConfig)
 	restGroupBuilder.Filter(cors.NewCrosFilter(), auth2.NewAuthenticationFilter[*model.User](&auth.Authentication{}))
 	restGroup := restGroupBuilder.Build()
 
@@ -83,7 +110,9 @@ func createAPP() (*wf.WebFrame, error) {
 	if apiPort == 0 {
 		apiPort = model.ApiPort
 	}
+	apiServerConfig := &web.ServerConfig{Port: apiPort}
 	apiRestGroupBuilder.Port(apiPort)
+	apiRestGroupBuilder.ServerConfig(apiServerConfig)
 	builder.RestGroup(apiRestGroupBuilder.Build())
 
 	manageModelGroupBuilder := core.NewModelGroupBuilder()
@@ -104,12 +133,17 @@ func createAPP() (*wf.WebFrame, error) {
 		}
 		manageModelGroupBuilder.DB(connection)
 	}
-	builder.Service(&service.TokenService{}, &service.ScheduleService{}, &service.LogService{}, &service.SmtpService{}, &service.UserService{})
+	restartService := &service.RestartService{}
+	builder.Service(restartService, &service.TokenService{}, &service.ScheduleService{}, &service.LogService{}, &service.SmtpService{}, &service.UserService{})
 
 	builder.Runner(schedule.NewScheduleWithSeconds(), &runner.ScheduleRunner{})
 
 	builder.ModelGroup(manageModelGroupBuilder.Build())
-	return builder.Build(), nil
+
+	app := builder.Build()
+	// Only the built app can restart itself, so the hook is handed over after Build.
+	restartService.Setup(manageServerConfig, apiServerConfig, app.ReStart)
+	return app, nil
 }
 func main() {
 	app, err := createAPP()

@@ -42,3 +42,4 @@ http2smtp
 /.backup
 /.claude
 /view/.idea
+.DS_Store

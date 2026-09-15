@@ -183,6 +183,24 @@ func (set *Set) putAdminSkip(req *web.Request) (any, error) {
 	return web.Ok("ok"), nil
 }
 
+// postRestart restarts the process so settings that only apply at startup take effect.
+// It saves nothing itself — the settings page persists through /reSet first — and answers
+// before the listeners close, so the caller sees the ports it will have to reconnect on.
+func (set *Set) postRestart(req *web.Request) (any, error) {
+	user, err := auth.User(req, set.context)
+	if user == nil {
+		return nil, err
+	}
+	if !user.IsAdmin {
+		return nil, errors.New("admin access required")
+	}
+	managePort, apiPort, err := wf.GetService[*service.RestartService](set.context).Restart()
+	if err != nil {
+		return nil, err
+	}
+	return web.Data(map[string]any{"managePort": managePort, "apiPort": apiPort}), nil
+}
+
 // getAdminExists checks if an admin user already exists in the database.
 func (set *Set) getAdminExists(req *web.Request) (any, error) {
 	userService := wf.GetService[*service.UserService](set.context)
@@ -297,6 +315,7 @@ func (set *Set) Init(context *core.Context) error {
 	context.Get("/adminExists", set.getAdminExists)
 	context.Get("/readSet", set.readSet)
 	context.Put("/reSet", set.putReSet).WithMeta(auth2.WithLogin())
+	context.Post("/restart", set.postRestart).WithMeta(auth2.WithLogin())
 	context.Post("/testConnection", set.testConnection)
 	return nil
 }

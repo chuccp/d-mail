@@ -26,8 +26,19 @@ Run the server:
 ./http2smtp -storage_root /path/to/storage     # Custom storage
 ```
 
-The port flags also mark the instance as running in Docker (`core.isdocker`), which the
-setup wizard uses to hide the port fields.
+**A port given by flag or environment means Docker** (`core.isdocker`): the container's run
+command fixed it and its port mapping depends on it, so the UI may not move it. Both UIs
+therefore only *display* the ports there — the wizard always, the settings page when
+`isDocker` — and `RestartService` refuses to change them. The flag is written on every
+start, true or false: it lives in the config file, and a stale `true` from an earlier
+container run would otherwise lock the ports for good.
+
+Port resolution is flag/env → `config.ini` → the 12566/12567 constants, read through
+`model.GetConfig` so the INI's strings survive. `config.ini` matters here: the wizard and
+the settings page both write it, and ignoring it used to mean a port saved in the UI was
+silently dropped on the next start. The wizard echoes the ports back in `/dbInit` even
+though it does not edit them, because that handler binds onto `model.DefaultConfig()` and an
+omitted port would be persisted as 12566/12567.
 
 Stop a running instance:
 
@@ -48,12 +59,25 @@ docker build -t http2smtp .
 ### Frontend (`view/`, Vue 3 + Vite)
 
 ```bash
-cd view && npm install
-cd view && npm run dev          # Dev server on :3000, proxies /api → localhost:12566
-cd view && npm run type-check   # vue-tsc --noEmit
-cd view && npm run build        # vue-tsc && vite build — must stay green
-cd view && npm run build:force  # vite build only
+cd view && pnpm install
+cd view && pnpm run dev          # Dev server on :3000, proxies /api → localhost:12566
+cd view && pnpm run type-check   # vue-tsc --noEmit
+cd view && pnpm run build        # vue-tsc && vite build — must stay green
+cd view && pnpm run build:force  # vite build only
 ```
+
+pnpm (11.25.0, pinned in `packageManager`) is the package manager; `pnpm-lock.yaml` is the
+only lockfile. Two things about this setup that fail loudly if mishandled:
+
+- pnpm 11 keeps project config in `pnpm-workspace.yaml` (which otherwise has no `packages:`
+  field here — it is config only). It requires a yes/no on every dependency install script;
+  an undecided entry is written as a placeholder string, and that placeholder makes *every*
+  `pnpm run` fail on the pre-run deps check. The one entry here denies `@parcel/watcher`'s
+  build, which `scripts/build-from-source.js` runs only when no prebuilt binary shipped.
+- **element-plus stays at 2.14.0 — do not take 2.14.5.** Its el-table slot props got typed
+  as `DefaultRow`, which `vue-tsc` rejects at every `#default="{ row }"` destructure (18
+  errors across `views/{smtp,token,user}/index.vue`), and `pnpm run build` runs `vue-tsc`
+  first, so the build fails rather than the release.
 
 ## Architecture
 
@@ -91,7 +115,7 @@ authorised normally.
 |---|---|
 | `main.go` | Wires both rest groups, models, services and the cron runner |
 | `rest/` | HTTP handlers. `Init(context)` registers routes; protect with `.WithMeta(auth2.WithLogin())` |
-| `service/` | Business logic: `TokenService`, `ScheduleService`, `LogService`, `SmtpService`, `UserService` |
+| `service/` | Business logic: `TokenService`, `ScheduleService`, `LogService`, `SmtpService`, `UserService`, `RestartService` |
 | `model/` | GORM models plus the `Config` struct mapped to `config.ini` |
 | `entity/` | Request/response DTOs and the log status constants |
 | `auth/` | Session cookie (`authentication.go`) and the AES-CBC helpers (`token.go`) |
@@ -117,6 +141,23 @@ uses but external callers can.
 Ownership: non-admin users only see their own rows, filtered by `user_id`. Admin-only
 endpoints re-check `IsAdmin` in the handler. `PUT` handlers verify ownership and preserve
 the original owner, so an admin editing someone else's row does not take it over.
+
+### Restart
+
+`POST /api/restart` (login + `IsAdmin`) restarts in place through `WebFrame.ReStart`, which
+cancels the run context and lets the framework re-init and serve again in the same process.
+The settings page's save-and-restart button saves through `/reSet` first, then calls it.
+
+The catch: a restart re-runs the server groups `main.go` built, and those carry the listen
+ports captured at startup — a static `Port()` would freeze the old value forever. So
+`main.go` hands each group a `*web.ServerConfig` it keeps, and `service.RestartService`
+rewrites `Port` on those two before triggering the restart — except under `core.isdocker`,
+where those ports are the container's and stay put. It also refuses a change the app could
+not come back up with (port in use, both ports equal), leaving the running instance alone;
+the two must differ because groups sharing a port are merged onto one gin engine and the
+public API would inherit the management server's auth filter. The response carries the ports
+now in effect — the client's own origin may be gone by the time it arrives, which is what
+the warning on the settings page reports.
 
 ### Configuration
 
@@ -147,16 +188,18 @@ must stay in key-for-key sync.
   `views/Index.vue` hydrates it from `GET /api/set`, which reports `hasLogin`,
   `username` and `isAdmin`.
 - `src/router/index.ts` — guard on `meta.requiresAuth` / `meta.requiresAdmin`.
-- `src/views/settings/index.vue` — admin-only; ports and database config.
+- `src/views/settings/index.vue` — admin-only; ports and database config, plus the
+  save-and-restart button that makes a saved port take effect.
 - `vite.config.ts` — dev proxy for `/api`. Keep `VITE_API_BASE_URL` relative so requests
   stay same-origin; pointing it at the backend directly is cross-origin and the session
   cookie will be dropped.
 
 ### Release packaging
 
-`view/` is the frontend that ships. The release workflow runs `npm ci` and `npm run build`
-in `view/`, then packages `view/dist` as `web/` in the release tarball. Because
-`npm run build` runs `vue-tsc` first, a type error fails the release rather than shipping.
+`view/` is the frontend that ships. The release workflow installs pnpm 11.25.0, then runs
+`pnpm install --frozen-lockfile` and `pnpm run build` in `view/`, and packages `view/dist`
+as `web/` in the release tarball. Because `pnpm run build` runs `vue-tsc` first, a type error
+fails the release rather than shipping.
 (Older releases pulled a prebuilt frontend from `chuccp/d-mail-view`; that dependency is
 gone, so `d-mail-view` is no longer part of the build.)
 

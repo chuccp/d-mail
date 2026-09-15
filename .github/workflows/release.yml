@@ -60,18 +60,25 @@ jobs:
           echo "ASSET_NAME=$NAME" >> $GITHUB_OUTPUT
           echo "ASSET_NAME=$NAME" >> $GITHUB_ENV
 
+      # Must come before setup-node: the pnpm cache backend shells out to
+      # `pnpm store path` to build the cache key
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: view/package-lock.json
+          cache: 'pnpm'
+          cache-dependency-path: view/pnpm-lock.yaml
 
       - name: Build web view
         working-directory: view
         run: |
-          npm ci
-          npm run build
+          pnpm install --frozen-lockfile
+          pnpm run build
 
       - name: Stage web assets
         run: |

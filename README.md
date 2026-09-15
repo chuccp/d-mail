@@ -189,7 +189,7 @@ curl 'http://127.0.0.1:12567/sendMail?token={{token}}&subject=test&content=this%
 The web UI lives in [`view/`](./view). Build it first, then the server:
 
 ```bash
-cd view && npm install && npm run build
+cd view && pnpm install && pnpm run build
 cd .. && go build -o http2smtp ./
 ```
 

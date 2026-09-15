@@ -11,11 +11,18 @@
             :model="settingsForm"
             label-width="140px"
           >
+            <!-- Docker instances are started with their ports, and the container's port
+                 mapping depends on them, so here they are only reported -->
             <el-form-item :label="t('settings.managementPort')">
-              <el-input-number v-model="settingsForm.webPort" :min="1" :max="65535" />
+              <el-input-number v-if="!isDocker" v-model="settingsForm.webPort" :min="1" :max="65535" />
+              <span v-else class="port-value">{{ settingsForm.webPort }}</span>
             </el-form-item>
             <el-form-item :label="t('settings.apiPort')">
-              <el-input-number v-model="settingsForm.apiPort" :min="1" :max="65535" />
+              <el-input-number v-if="!isDocker" v-model="settingsForm.apiPort" :min="1" :max="65535" />
+              <span v-else class="port-value">{{ settingsForm.apiPort }}</span>
+            </el-form-item>
+            <el-form-item v-if="isDocker">
+              <span class="port-hint">{{ t('settings.portLockedByDocker') }}</span>
             </el-form-item>
           </el-form>
         </el-card>
@@ -73,8 +80,11 @@
 
     <el-row style="margin-top: 20px;">
       <el-col :span="24">
-        <el-button type="primary" size="large" :loading="saving" @click="handleSave">
+        <el-button type="primary" size="large" :loading="saving" :disabled="restarting" @click="handleSave">
           {{ t('settings.saveSettings') }}
+        </el-button>
+        <el-button type="warning" size="large" :loading="restarting" :disabled="saving" @click="handleSaveAndRestart">
+          {{ t('settings.saveAndRestart') }}
         </el-button>
       </el-col>
     </el-row>
@@ -83,14 +93,17 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { useI18n } from 'vue-i18n'
-import { getSettings, updateSettings } from '@/api/settings'
+import { getSettings, updateSettings, restartSystem } from '@/api/settings'
+import { checkInitStatus } from '@/api/setup'
 
 const { t } = useI18n()
 
 const loading = ref(false)
 const saving = ref(false)
+const restarting = ref(false)
+const isDocker = ref(false)
 
 const settingsForm = reactive<SetInfo>({
   webPort: 12566,
@@ -119,6 +132,17 @@ const loadData = async () => {
   }
 }
 
+// A Docker instance is started with its ports (flag or environment), and a saved port
+// would not move the listener, so the fields are read-only there.
+const loadDeployMode = async () => {
+  try {
+    const res = await checkInitStatus()
+    isDocker.value = res.data?.isDocker ?? false
+  } catch {
+    // interceptor already surfaced the error
+  }
+}
+
 const handleSave = async () => {
   saving.value = true
   try {
@@ -133,8 +157,44 @@ const handleSave = async () => {
   }
 }
 
+// The ports only bind at startup, so saving them is pointless without the restart.
+const handleSaveAndRestart = async () => {
+  try {
+    await ElMessageBox.confirm(t('settings.restartConfirm'), t('settings.restartSystem'), {
+      type: 'warning',
+      confirmButtonText: t('settings.saveAndRestart'),
+      cancelButtonText: t('common.cancel')
+    })
+  } catch {
+    return // dismissed
+  }
+
+  restarting.value = true
+  try {
+    await updateSettings(settingsForm)
+    const res = await restartSystem()
+    const managePort = res.data?.managePort
+    const currentPort = Number(window.location.port || (window.location.protocol === 'https:' ? 443 : 80))
+    if (managePort && managePort !== currentPort) {
+      // Reloading would only hit a dead port — point at the new origin instead.
+      ElMessage.warning(
+        t('settings.restartPortChanged', { manage: managePort, api: res.data.apiPort })
+      )
+      restarting.value = false
+    } else {
+      // Stay busy until the reload: a second click would restart an instance mid-startup.
+      ElMessage.success(t('settings.systemRestarted'))
+      setTimeout(() => window.location.reload(), 3000)
+    }
+  } catch {
+    // interceptor already surfaced the error
+    restarting.value = false
+  }
+}
+
 onMounted(() => {
   loadData()
+  loadDeployMode()
 })
 </script>
 
@@ -147,5 +207,17 @@ h3 {
   margin: 0;
   font-size: 16px;
   font-weight: 600;
+}
+
+.port-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.port-hint {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #909399;
 }
 </style>

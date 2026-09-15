@@ -188,7 +188,7 @@ curl 'http://127.0.0.1:12567/sendMail?token={{token}}&subject=test&content=this%
 前端在 [`view/`](./view) 目录。先构建前端，再构建服务端：
 
 ```bash
-cd view && npm install && npm run build
+cd view && pnpm install && pnpm run build
 cd .. && go build -o http2smtp ./
 ```
 
